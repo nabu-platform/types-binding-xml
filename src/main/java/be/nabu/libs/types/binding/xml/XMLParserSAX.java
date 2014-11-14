@@ -338,9 +338,13 @@ public class XMLParserSAX extends DefaultHandler {
 	
 	@Override
 	public void characters(char[] ch, int start, int length) throws SAXException {
-		if (content == null)
-			content = new StringWriter();
-		content.append(new String(ch, start, length));
+		// only retain the content if we are interested in it
+		if (ignoreCounter == 0) {
+			if (content == null) {
+				content = new StringWriter();
+			}
+			content.append(new String(ch, start, length));
+		}
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
