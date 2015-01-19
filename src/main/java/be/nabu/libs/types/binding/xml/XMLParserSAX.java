@@ -240,6 +240,11 @@ public class XMLParserSAX extends DefaultHandler {
 					if (actualType == null) {
 						actualType = DefinedTypeResolverFactory.getInstance().getResolver().resolve(typeId);
 					}
+					// if we can not resolve the type, we probably have a problem
+					// we might want to add a boolean to influence this behavior
+					if (actualType == null) {
+						throw new SAXException("Could not resolve actual xsi type: " + typeId);
+					}
 				}
 			}
 			else
@@ -261,8 +266,11 @@ public class XMLParserSAX extends DefaultHandler {
 			if (element == null) {
 				if (!ignoreUndefined)
 					throw new SAXException("The element " + localName + " is not expected at this position");
-				else
+				else {
+					// set isNil back to false, otherwise an ignored null field will keep isNil on true
+					isNil = false;
 					ignoreCounter++;
+				}
 			}
 			else {
 				anyStack.push(getCurrentPath() + "/" + localName);
