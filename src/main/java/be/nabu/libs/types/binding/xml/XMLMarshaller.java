@@ -221,8 +221,8 @@ public class XMLMarshaller {
 			}
 			writer.append(elementName);
 			
-			// if the namespace was not already defined, define it
-			if (namespaceAware && elementNamespace != null && !isNamespaceDefined && (isElementQualified() || isRoot)) {
+			// if the namespace was not already defined, define it, ignore ##default namespace
+			if (namespaceAware && elementNamespace != null && !isNamespaceDefined && (isElementQualified() || isRoot) && !elementNamespace.equals("##default")) {
 				writer.append(" xmlns");
 				if (namespaces.get(elementNamespace) != null)
 					writer.append(":").append(namespaces.get(elementNamespace));
@@ -302,7 +302,7 @@ public class XMLMarshaller {
 					if (complexType instanceof SimpleType) {
 						Element<?> valueElement = complexType.get(ComplexType.SIMPLE_TYPE_VALUE);
 						if (!(valueElement.getType() instanceof Marshallable))
-							throw new MarshalException("The simple value can not be marshalled");
+							throw new MarshalException("The simple value for element " + valueElement.getName() + " can not be marshalled");
 						Object value = complexContent.get(ComplexType.SIMPLE_TYPE_VALUE);
 						String marshalledValue = ((Marshallable) valueElement.getType()).marshal(value, typeInstance.getProperties());
 						writer.append(encode(marshalledValue));
@@ -350,7 +350,7 @@ public class XMLMarshaller {
 					writer.append(">");
 					SimpleType<?> simpleType = (SimpleType<?>) typeInstance.getType();
 					if (!(simpleType instanceof Marshallable))
-						throw new MarshalException("The simple value can not be marshalled");
+						throw new MarshalException("The simple value for " + typeInstance + " using type " + simpleType + " can not be marshalled");
 					String marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
 					writer.append(marshalledValue);
 					writer.append("</");
