@@ -16,14 +16,14 @@
 				<version>2.3.7</version>
 				<extensions>true</extensions>
 			</plugin>
-                        <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-compiler-plugin</artifactId>
-                                <configuration>
-                                        <source>1.6</source>
-                                        <target>1.6</target>
-                                </configuration>
-                        </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -48,11 +48,11 @@
 			<artifactId>resources-api</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
-		
-		<!-- IMPORTANT: this includes an OLD stax 1 api which does not work with the code:
-			M2_REPO/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar
-			manually remove the stax 1.0.2 reference in the build path 
-			it doesn't matter if you use lgpl or asl version of woodstox -->
+
+		<!-- IMPORTANT: this includes an OLD stax 1 api which does not work with 
+			the code: M2_REPO/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar manually 
+			remove the stax 1.0.2 reference in the build path it doesn't matter if you 
+			use lgpl or asl version of woodstox -->
 		<dependency>
 			<groupId>org.codehaus.woodstox</groupId>
 			<artifactId>woodstox-core-lgpl</artifactId>
@@ -65,7 +65,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
