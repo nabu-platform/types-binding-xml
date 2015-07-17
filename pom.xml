@@ -58,6 +58,12 @@
 			<artifactId>woodstox-core-lgpl</artifactId>
 			<version>4.1.1</version>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>javax.xml.stream</groupId>
+					<artifactId>stax-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		
 		<dependency>
