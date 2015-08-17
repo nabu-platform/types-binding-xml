@@ -29,14 +29,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>be.nabu.libs.artifacts</groupId>
-			<artifactId>artifacts-api</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
 			<groupId>be.nabu.libs.types</groupId>
 			<artifactId>types-binding-api</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>be.nabu.libs.types</groupId>
@@ -46,7 +41,7 @@
 		<dependency>
 			<groupId>be.nabu.libs.resources</groupId>
 			<artifactId>resources-api</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.1-SNAPSHOT</version>
 		</dependency>
 
 		<!-- IMPORTANT: this includes an OLD stax 1 api which does not work with 
