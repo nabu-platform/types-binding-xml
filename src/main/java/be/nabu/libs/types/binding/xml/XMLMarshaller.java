@@ -14,6 +14,7 @@ import java.util.Set;
 
 import be.nabu.libs.property.ValueUtils;
 import be.nabu.libs.types.CollectionHandlerFactory;
+import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.DefinedTypeResolverFactory;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.Attribute;
@@ -29,7 +30,6 @@ import be.nabu.libs.types.api.SimpleType;
 import be.nabu.libs.types.api.Type;
 import be.nabu.libs.types.api.TypeInstance;
 import be.nabu.libs.types.base.DynamicElement;
-import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanType;
 import be.nabu.libs.types.properties.AttributeQualifiedDefaultProperty;
 import be.nabu.libs.types.properties.ElementQualifiedDefaultProperty;
@@ -255,7 +255,7 @@ public class XMLMarshaller {
 			
 			if (typeInstance.getType() instanceof ComplexType) {
 				ComplexType complexType = (ComplexType) typeInstance.getType();
-				ComplexContent complexContent = content == null || content instanceof ComplexContent ? (ComplexContent) content : new BeanInstance(content);
+				ComplexContent complexContent = content == null || content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content);
 				// we need to write all the attributes into the element tag, we need to check the definition to see which elements are attributes
 				// additionally while we are looping we can check if there is _any_ content at all and generate a self closing tag if not
 				boolean hasContent = false;
