@@ -1,7 +1,9 @@
 package be.nabu.libs.types.binding.xml;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -37,6 +39,11 @@ import be.nabu.libs.types.properties.MinOccursProperty;
 import be.nabu.libs.types.properties.NameProperty;
 import be.nabu.libs.types.properties.NamespaceProperty;
 import be.nabu.libs.types.properties.NillableProperty;
+import be.nabu.utils.codec.TranscoderUtils;
+import be.nabu.utils.codec.impl.Base64Encoder;
+import be.nabu.utils.io.IOUtils;
+import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.ReadableContainer;
 
 /**
  * This class is not threadsafe!
@@ -101,6 +108,11 @@ public class XMLMarshaller {
 	 * Whether or not we want to use xsi features
 	 */
 	private boolean allowXSI = true;
+	
+	/**
+	 * Whether or not we want to marshal streams as (base64 encoded) bytes
+	 */
+	private boolean marshalStreams = true;
 	
 	/**
 	 * Used to generate new prefixes
@@ -349,9 +361,22 @@ public class XMLMarshaller {
 				else {
 					writer.append(">");
 					SimpleType<?> simpleType = (SimpleType<?>) typeInstance.getType();
-					if (!(simpleType instanceof Marshallable))
-						throw new MarshalException("The simple value for " + typeInstance + " using type " + simpleType + " can not be marshalled");
-					String marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
+					String marshalledValue;
+					if (!(simpleType instanceof Marshallable)) {
+						if ((content instanceof InputStream && marshalStreams) || content instanceof byte[]) {
+							if (content instanceof byte[]) {
+								content = new ByteArrayInputStream((byte[]) content);
+							}
+							ReadableContainer<ByteBuffer> transcodedBytes = TranscoderUtils.transcodeBytes(IOUtils.wrap((InputStream) content), new Base64Encoder());
+							marshalledValue = IOUtils.toString(IOUtils.wrapReadable(transcodedBytes, Charset.forName("ASCII")));
+						}
+						else {
+							throw new MarshalException("The simple value for " + typeInstance + " using type " + simpleType + " can not be marshalled");
+						}
+					}
+					else {
+						marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
+					}
 					writer.append(marshalledValue);
 					writer.append("</");
 					if (elementNamespace != null && namespaces.get(elementNamespace) != null && (isElementQualified() || isRoot))
@@ -458,5 +483,12 @@ public class XMLMarshaller {
 	public void setNamespaceAware(boolean namespaceAware) {
 		this.namespaceAware = namespaceAware;
 	}
-	
+
+	public boolean isMarshalStreams() {
+		return marshalStreams;
+	}
+
+	public void setMarshalStreams(boolean marshalStreams) {
+		this.marshalStreams = marshalStreams;
+	}
 }

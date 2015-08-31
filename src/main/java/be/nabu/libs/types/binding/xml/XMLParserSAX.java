@@ -1,6 +1,9 @@
 package be.nabu.libs.types.binding.xml;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +35,11 @@ import be.nabu.libs.types.binding.api.Window;
 import be.nabu.libs.types.binding.api.WindowedList;
 import be.nabu.libs.types.java.BeanType;
 import be.nabu.libs.types.properties.NameProperty;
+import be.nabu.utils.codec.TranscoderUtils;
+import be.nabu.utils.codec.impl.Base64Decoder;
+import be.nabu.utils.io.IOUtils;
+import be.nabu.utils.io.api.ByteBuffer;
+import be.nabu.utils.io.api.ReadableContainer;
 
 /**
  * Does not seem to support any exact way to determine the location
@@ -314,9 +322,28 @@ public class XMLParserSAX extends DefaultHandler {
 							throw new SAXException("The attribute " + key + " is not supported at this location");
 						}
 					}
-					if (!(attributeElement.getType() instanceof Unmarshallable))
-						throw new SAXException("Can not unmarshal the attribute " + key + ", the type " + attributeElement.getType() + " is not unmarshallable");
-					contentStack.peek().set("@" + key, ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties()));
+					Object unmarshalled;
+					if (!(attributeElement.getType() instanceof Unmarshallable)) {
+						// if it's an inputstream, assume base64 encoding
+						if (attributeElement.getType() instanceof SimpleType && InputStream.class.isAssignableFrom(((SimpleType) attributeElement.getType()).getInstanceClass())) {
+							try {
+								unmarshalled = IOUtils.toInputStream(TranscoderUtils.transcodeBytes(IOUtils.wrap(elementAttributes.get(key).getBytes("ASCII"), true), new Base64Decoder()), true);
+							}
+							catch (UnsupportedEncodingException e) {
+								throw new RuntimeException(e);
+							}
+							catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+						else {
+							throw new SAXException("Can not unmarshal the attribute " + key + ", the type " + attributeElement.getType() + " is not unmarshallable");
+						}
+					}
+					else {
+						unmarshalled = ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties());
+					}
+					contentStack.peek().set("@" + key, unmarshalled);
 				}
 				// if it belongs in a window, store the starting offset so we can use it when the element ends
 				Window window = getWindow();
@@ -385,9 +412,28 @@ public class XMLParserSAX extends DefaultHandler {
 			}
 			Object convertedContent = null;
 			if (content != null && content.length() > 0) {
-				if (!(elementStack.peek().getType() instanceof Unmarshallable))
-					throw new SAXException("The element '" + localName + "' in " + getCurrentPath() + " can not be unmarshalled");
-				convertedContent = ((Unmarshallable<?>) elementStack.peek().getType()).unmarshal(content, elementStack.peek().getProperties());
+				if (!(elementStack.peek().getType() instanceof Unmarshallable)) {
+					if (elementStack.peek().getType() instanceof SimpleType && (InputStream.class.isAssignableFrom(((SimpleType) elementStack.peek().getType()).getInstanceClass()) || byte[].class.isAssignableFrom(((SimpleType) elementStack.peek().getType()).getInstanceClass()))) {
+						try {
+							ReadableContainer<ByteBuffer> transcodedBytes = TranscoderUtils.transcodeBytes(IOUtils.wrap(content.getBytes("ASCII"), true), new Base64Decoder());
+							convertedContent = InputStream.class.isAssignableFrom(((SimpleType) elementStack.peek().getType()).getInstanceClass()) 
+								? IOUtils.toInputStream(transcodedBytes, true)
+								: IOUtils.toBytes(transcodedBytes);
+						}
+						catch (UnsupportedEncodingException e) {
+							throw new RuntimeException(e);
+						}
+						catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					}
+					else {
+						throw new SAXException("The element '" + localName + "' in " + getCurrentPath() + " can not be unmarshalled");
+					}
+				}
+				else {
+					convertedContent = ((Unmarshallable<?>) elementStack.peek().getType()).unmarshal(content, elementStack.peek().getProperties());
+				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
 				List<?> list = (List<?>) contentStack.peek().get(localName);
