@@ -377,7 +377,7 @@ public class XMLMarshaller {
 					else {
 						marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
 					}
-					writer.append(marshalledValue);
+					writer.append(encode(marshalledValue));
 					writer.append("</");
 					if (elementNamespace != null && namespaces.get(elementNamespace) != null && (isElementQualified() || isRoot))
 						writer.append(namespaces.get(elementNamespace)).append(":");

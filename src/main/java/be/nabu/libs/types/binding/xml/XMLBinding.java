@@ -78,10 +78,10 @@ public class XMLBinding extends BaseTypeBinding {
 				return saxHandler.getInstance();
 			}
 			catch (ParserConfigurationException e) {
-				throw new MarshalException(e);
+				throw new MarshalException("Could not parse: " + resource, e);
 			}
 			catch (SAXException e) {
-				throw new MarshalException(e);
+				throw new MarshalException("Could not parse: " + resource, e);
 			}			
 		}
 		// when using windows, we need the stax parser for the character offsets
