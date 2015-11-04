@@ -67,6 +67,11 @@ public class XMLMarshaller {
 	private String prefix = "tns";
 	
 	/**
+	 * Allows you to set an xsi type on the root element (requires allowXSI true)
+	 * This can make it easier to unmarshal the XML later on
+	 */
+	private String xsiType;
+	/**
 	 * This allows usage of the default namespace
 	 * This means it will be used for the topmost namespace and all other namespaces will be prefixed
 	 * This generates clean xml
@@ -275,10 +280,14 @@ public class XMLMarshaller {
 				if (complexContent != null) {
 					// if you allow xsi and the complex content is actually a defined extension of the complex type, add it
 					// it doesn't specifically check for extension because this should be enforced by the types, not the marshaller
+					System.out.println("ROOT TYPE=" + complexType + " but marshalling : " + complexContent.getType());
 					if (allowXSI && !complexContent.getType().equals(complexType) && complexContent.getType() instanceof DefinedType) {
 						// TODO: should use namespace prefix to allow other tools to also unmarshal it
 						writer.append(" xsi:type=\"" + ((DefinedType) complexContent.getType()).getId() + "\"");
-						complexType = (ComplexType) complexContent.getType();
+						complexType = complexContent.getType();
+					}
+					else if (allowXSI && isRoot && xsiType != null) {
+						writer.append(" xsi:type=\"" + xsiType + "\"");
 					}
 					for (Element<?> child : TypeUtils.getAllChildren(complexType)) {
 						if (child instanceof Attribute) {
@@ -491,4 +500,13 @@ public class XMLMarshaller {
 	public void setMarshalStreams(boolean marshalStreams) {
 		this.marshalStreams = marshalStreams;
 	}
+
+	public String getXsiType() {
+		return xsiType;
+	}
+
+	public void setXsiType(String xsiType) {
+		this.xsiType = xsiType;
+	}
+	
 }

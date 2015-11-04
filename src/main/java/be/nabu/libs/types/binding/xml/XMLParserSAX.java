@@ -293,9 +293,10 @@ public class XMLParserSAX extends DefaultHandler {
 			elementStack.push(contentStack.isEmpty() ? null : element);
 			Type intendedType = elementStack.peek() == null ? type : elementStack.peek().getType();
 			if (contentStack.isEmpty() && !element.getName().equals(localName))
-				throw new SAXException("The root tag " + localName + " does not match the expected name: " + intendedType.getName());
+				throw new SAXException("The root tag " + localName + " does not match the expected name: " + element.getName());
 			if (actualType != null) {
-				if (!TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)))
+				// intended type can be null if no complex type is given
+				if (intendedType != null && !TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)))
 					throw new SAXException("The xsi type " + actualType + " is not compatible with the defined type " + intendedType);
 				else
 					intendedType = actualType;

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
-import java.text.ParseException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -58,12 +57,15 @@ public class XMLBinding extends BaseTypeBinding {
 	}
 
 	@Override
-	protected ComplexContent unmarshal(ReadableResource resource, Window [] windows, Value<?>...values) throws IOException, ParseException {
+	protected ComplexContent unmarshal(ReadableResource resource, Window [] windows, Value<?>...values) throws IOException {
 		// create the sax handler
 		XMLParserSAX saxHandler = new XMLParserSAX(type, windows, values);
 		saxHandler.setResource(resource);
 		saxHandler.setCharset(charset);
-		
+		return unmarshal(saxHandler, resource, windows, values);
+	}
+
+	public ComplexContent unmarshal(XMLParserSAX saxHandler, ReadableResource resource, Window[] windows, Value<?>...values) throws IOException {
 		// create the reader
 		ReadableContainer<CharBuffer> readable = IOUtils.wrapReadable(resource.getReadable(), charset);
 		Reader reader = IOUtils.toReader(readable);
@@ -106,7 +108,6 @@ public class XMLBinding extends BaseTypeBinding {
 
 	@Override
 	public void marshal(OutputStream output, ComplexContent content, Value<?>... values) throws IOException {
-		new XMLMarshaller(new BaseTypeInstance(type, values))
-			.marshal(output, charset, content);
+		new XMLMarshaller(new BaseTypeInstance(type, values)).marshal(output, charset, content);
 	}
 }
