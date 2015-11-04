@@ -106,7 +106,7 @@ public class XMLBinding extends BaseTypeBinding {
 
 	@Override
 	public void marshal(OutputStream output, ComplexContent content, Value<?>... values) throws IOException {
-		new XMLMarshaller(new BaseTypeInstance(content.getType(), values))
+		new XMLMarshaller(new BaseTypeInstance(type, values))
 			.marshal(output, charset, content);
 	}
 }
