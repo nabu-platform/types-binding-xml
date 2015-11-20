@@ -280,7 +280,6 @@ public class XMLMarshaller {
 				if (complexContent != null) {
 					// if you allow xsi and the complex content is actually a defined extension of the complex type, add it
 					// it doesn't specifically check for extension because this should be enforced by the types, not the marshaller
-					System.out.println("ROOT TYPE=" + complexType + " but marshalling : " + complexContent.getType());
 					if (allowXSI && !complexContent.getType().equals(complexType) && complexContent.getType() instanceof DefinedType) {
 						// TODO: should use namespace prefix to allow other tools to also unmarshal it
 						writer.append(" xsi:type=\"" + ((DefinedType) complexContent.getType()).getId() + "\"");
