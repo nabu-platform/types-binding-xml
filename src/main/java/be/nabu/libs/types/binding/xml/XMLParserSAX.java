@@ -573,4 +573,12 @@ public class XMLParserSAX extends DefaultHandler {
 	public void setRegistry(TypeRegistry registry) {
 		this.registry = registry;
 	}
+
+	public boolean isTrimContent() {
+		return trimContent;
+	}
+
+	public void setTrimContent(boolean trimContent) {
+		this.trimContent = trimContent;
+	}
 }

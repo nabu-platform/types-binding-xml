@@ -50,6 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
+	private boolean trimContent = true;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -60,6 +61,7 @@ public class XMLBinding extends BaseTypeBinding {
 	protected ComplexContent unmarshal(ReadableResource resource, Window [] windows, Value<?>...values) throws IOException {
 		// create the sax handler
 		XMLParserSAX saxHandler = new XMLParserSAX(type, windows, values);
+		saxHandler.setTrimContent(isTrimContent());
 		saxHandler.setResource(resource);
 		saxHandler.setCharset(charset);
 		return unmarshal(saxHandler, resource, windows, values);
@@ -110,4 +112,13 @@ public class XMLBinding extends BaseTypeBinding {
 	public void marshal(OutputStream output, ComplexContent content, Value<?>... values) throws IOException {
 		new XMLMarshaller(new BaseTypeInstance(type, values)).marshal(output, charset, content);
 	}
+
+	public boolean isTrimContent() {
+		return trimContent;
+	}
+
+	public void setTrimContent(boolean trimContent) {
+		this.trimContent = trimContent;
+	}
+	
 }
