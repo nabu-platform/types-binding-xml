@@ -354,7 +354,7 @@ public class XMLMarshaller {
 					writer.append(elementName).append(">");
 				}
 				else {
-					if (allowXSI && ValueUtils.getValue(new NillableProperty(), typeInstance.getProperties()))
+					if (allowXSI && ValueUtils.getValue(NillableProperty.getInstance(), typeInstance.getProperties()))
 						writer.append(" xsi:nil=\"true\"");
 					writer.append("/>");
 				}
@@ -362,7 +362,7 @@ public class XMLMarshaller {
 			else {
 				if (content == null) {
 					// only set an explicit nil if you allow xsi and the property allows for nillable values
-					if (allowXSI && ValueUtils.getValue(new NillableProperty(), typeInstance.getProperties()))
+					if (allowXSI && ValueUtils.getValue(NillableProperty.getInstance(), typeInstance.getProperties()))
 						writer.append(" xsi:nil=\"true\"");
 					writer.append("/>");
 				}
