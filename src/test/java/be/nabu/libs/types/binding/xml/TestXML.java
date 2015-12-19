@@ -24,6 +24,8 @@ public class TestXML extends TestCase {
 		config.setComplexType("be.nabu.libs.types.binding.xml.Company");
 		
 		XMLBinding binding = new XMLBinding(new BeanType<Company>(Company.class), Charset.forName("UTF-8"));
+		binding.setCamelCaseDashes(true);
+		binding.setCamelCaseUnderscores(true);
 		try {
 			Window window = new Window("company/employees", 3, 3);
 

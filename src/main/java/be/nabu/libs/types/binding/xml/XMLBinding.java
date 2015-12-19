@@ -50,7 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = true;
+	private boolean trimContent = true, camelCaseDashes, camelCaseUnderscores;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -61,6 +61,8 @@ public class XMLBinding extends BaseTypeBinding {
 	protected ComplexContent unmarshal(ReadableResource resource, Window [] windows, Value<?>...values) throws IOException {
 		// create the sax handler
 		XMLParserSAX saxHandler = new XMLParserSAX(type, windows, values);
+		saxHandler.setCamelCaseDashes(camelCaseDashes);
+		saxHandler.setCamelCaseUnderscores(camelCaseUnderscores);
 		saxHandler.setTrimContent(isTrimContent());
 		saxHandler.setResource(resource);
 		saxHandler.setCharset(charset);
@@ -120,5 +122,20 @@ public class XMLBinding extends BaseTypeBinding {
 	public void setTrimContent(boolean trimContent) {
 		this.trimContent = trimContent;
 	}
-	
+
+	public boolean isCamelCaseDashes() {
+		return camelCaseDashes;
+	}
+
+	public void setCamelCaseDashes(boolean camelCaseDashes) {
+		this.camelCaseDashes = camelCaseDashes;
+	}
+
+	public boolean isCamelCaseUnderscores() {
+		return camelCaseUnderscores;
+	}
+
+	public void setCamelCaseUnderscores(boolean camelCaseUnderscores) {
+		this.camelCaseUnderscores = camelCaseUnderscores;
+	}
 }

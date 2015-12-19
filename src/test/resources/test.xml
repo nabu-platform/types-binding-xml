@@ -8,15 +8,15 @@
 		<startDay xsi:nil="true" />
 	</employees>
 	<employees id="1">
-		<firstName>John1</firstName>
+		<first-name>John1</first-name>
 		<age>57</age>
 		<lastName>Doe1</lastName>
 		<startDay>2013-12-03T00:00:00.000+01:00</startDay>
 	</employees>
 	<employees id="2">
-		<firstName>John2</firstName>
+		<first_name>John2</first_name>
 		<age>50</age>
-		<lastName>Doe2</lastName>
+		<lastName->Doe2</lastName->
 		<startDay xsi:nil="true" />
 	</employees>
 	<employees id="3">
