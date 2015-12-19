@@ -342,7 +342,12 @@ public class XMLParserSAX extends DefaultHandler {
 						}
 					}
 					else {
-						unmarshalled = ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties());
+						try {
+							unmarshalled = ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties());
+						}
+						catch (RuntimeException e) {
+							throw new RuntimeException("Could not parse attribute: " + key, e);
+						}
 					}
 					contentStack.peek().set("@" + key, unmarshalled);
 				}
