@@ -352,6 +352,7 @@ public class XMLParserSAX extends DefaultHandler {
 				isSimpleType = intendedType instanceof SimpleType;
 				
 				ComplexType complexType = (ComplexType) intendedType;
+				// note: it is possible (per the spec) to have other attributes even is xsi:nil is set. you simply can not have content (text or elements)
 				contentStack.push(isNil && elementAttributes.isEmpty() ? null : complexType.newInstance());
 				// set it as the main instance
 				if (contentStack.size() == 1)
