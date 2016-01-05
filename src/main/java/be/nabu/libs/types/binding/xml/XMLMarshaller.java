@@ -134,7 +134,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true);
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null);
 		bufferedWriter.flush();
 	}
 	
@@ -168,7 +168,7 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
@@ -190,7 +190,7 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null);
 				}
 			}
 		}
@@ -270,6 +270,12 @@ public class XMLMarshaller {
 				writer.append(" xmlns:xsi=\"").append(XSI).append("\"");
 			}
 			
+			if (additionalAttributes != null) {
+				for (String key : additionalAttributes.keySet()) {
+					writer.append(" ").append(key).append("=\"").append(encodeAttribute(additionalAttributes.get(key))).append("\"");
+				}
+			}
+			
 			if (typeInstance.getType() instanceof ComplexType) {
 				ComplexType complexType = (ComplexType) typeInstance.getType();
 				ComplexContent complexContent = content == null || content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content);
@@ -336,14 +342,22 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false);	
+											marshal(writer, childValue, child, namespaces, false, null);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false);
+											marshal(writer, childValue, child, namespaces, false, null);
 									}
-									else
-										marshal(writer, value, child, namespaces, false);
+									else if (value instanceof Map) {
+										for (Object key : ((Map) value).keySet()) {
+											Map<String, String> attributes = new HashMap<String, String>();
+											attributes.put("collectionIndex", key.toString());
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes);
+										}
+									}
+									else {
+										marshal(writer, value, child, namespaces, false, null);
+									}
 								}
 							}
 						}
