@@ -55,7 +55,7 @@ public class XMLParserSAX extends DefaultHandler {
 	private XMLBinding binding;
 	
 	private TypeRegistry registry;
-
+	
 	/**
 	 * Whether xsi:type extensions are allowed
 	 * All type implementations should allow this so it is enabled by default
@@ -110,6 +110,11 @@ public class XMLParserSAX extends DefaultHandler {
 	 * Keeps track (path-wise) where we are
 	 */
 	private Stack<String> pathStack = new Stack<String>();
+	
+	/**
+	 * Keeps track of the collection indexes (for maps)
+	 */
+	private Stack<String> collectionIndexes = new Stack<String>();
 	
 	/**
 	 * Keeps track of the instances of the complex elements that contain the other elements
@@ -359,7 +364,13 @@ public class XMLParserSAX extends DefaultHandler {
 					instance = contentStack.peek();
 				
 				pathStack.push(localName);
+				boolean foundCollection = false;
 				for (String key : elementAttributes.keySet()) {
+					if ("collectionIndex".equals(key)) {
+						foundCollection = true;
+						collectionIndexes.push(elementAttributes.get(key));
+						continue;
+					}
 					key = preprocess(key);
 					Element<?> attributeElement = complexType.get(key);
 					if (attributeElement == null) {
@@ -397,6 +408,9 @@ public class XMLParserSAX extends DefaultHandler {
 						}
 					}
 					contentStack.peek().set("@" + key, unmarshalled);
+				}
+				if (!foundCollection) {
+					collectionIndexes.push(null);
 				}
 				// if it belongs in a window, store the starting offset so we can use it when the element ends
 				Window window = getWindow();
@@ -519,6 +533,8 @@ public class XMLParserSAX extends DefaultHandler {
 			if (!onStack.equals(localName))
 				throw new SAXException("Closing tag " + localName + " did not have an opening tag, found " + onStack);
 
+			// always pop because you always push
+			Object index = collectionIndexes.pop();
 			// append the complex content to the current path, beware of lists
 			if (elementStack.peek() != null && elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
 				Object currentObject = contentStack.peek().get(localName);
@@ -526,16 +542,20 @@ public class XMLParserSAX extends DefaultHandler {
 				if (activeWindow != null && offset < 0) {
 					throw new SAXException("Windowing was activated, but offsets are missing, please use the StAX parser for windowed parsing");
 				}
-				int index = 0;
 				
-				if (currentObject != null) {
-					CollectionHandlerProvider provider = collectionHandler.getHandler(currentObject.getClass());
-					index = provider.getAsCollection(currentObject).size();
+				if (index == null) {
+					if (currentObject != null) {
+						CollectionHandlerProvider provider = collectionHandler.getHandler(currentObject.getClass());
+						index = provider.getAsCollection(currentObject).size();
+					}
+					else {
+						index = 0;
+					}
 				}
 				
 				// no list yet and its a window
 				// explicitly set a windowed list
-				if (activeWindow != null) {
+				if (index instanceof Integer && activeWindow != null) {
 					WindowedList windowedList = null;
 
 					if (currentObject == null) {
@@ -550,9 +570,9 @@ public class XMLParserSAX extends DefaultHandler {
 						throw new IllegalArgumentException("The collection already exists and is not windowed");
 					}
 					// always register the offset
-					windowedList.setOffset(index, windowOffsets.get(activeWindow));
+					windowedList.setOffset((Integer) index, windowOffsets.get(activeWindow));
 					
-					if (index < activeWindow.getSize()) {
+					if ((Integer) index < activeWindow.getSize()) {
 						contentStack.peek().set(localName + "[" + index + "]", currentInstance);
 					}
 				}					

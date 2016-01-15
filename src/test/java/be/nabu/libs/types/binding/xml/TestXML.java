@@ -1,5 +1,7 @@
 package be.nabu.libs.types.binding.xml;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -14,6 +16,7 @@ import org.xml.sax.SAXException;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.binding.BindingConfig;
 import be.nabu.libs.types.binding.api.Window;
+import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanType;
 
 public class TestXML extends TestCase {
@@ -50,5 +53,16 @@ public class TestXML extends TestCase {
 		finally {
 			input.close();
 		}
+	}
+	
+	public void testMap() throws IOException, ParseException {
+		MapExample example = new MapExample("test1", "test2");
+		XMLBinding binding = new XMLBinding(new BeanType<MapExample>(MapExample.class), Charset.forName("UTF-8"));
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		binding.marshal(output, new BeanInstance<MapExample>(example));
+//		System.out.println(new String(output.toByteArray()));
+		MapExample unmarshal = TypeUtils.getAsBean(binding.unmarshal(new ByteArrayInputStream(output.toByteArray()), new Window[0]), MapExample.class);
+		assertEquals(unmarshal.getEntries(), example.getEntries());
+		assertEquals(unmarshal.getSingle(), example.getSingle());
 	}
 }
