@@ -104,6 +104,11 @@ public class XMLMarshaller {
 	private boolean forceOptionalEmptyFields = false;
 	
 	/**
+	 * Should the marshaller pretty print?
+	 */
+	private boolean prettyPrint = true;
+	
+	/**
 	 * Namespaces that are already mapped to prefixes
 	 * This allows you to generate xml with specific prefixes
 	 */
@@ -134,7 +139,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true, null);
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0);
 		bufferedWriter.flush();
 	}
 	
@@ -168,7 +173,7 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
@@ -190,7 +195,7 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot, null);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth);
 				}
 			}
 		}
@@ -203,6 +208,12 @@ public class XMLMarshaller {
 			if (elementNamespace != null && elementNamespace.equals(Type.XML_SCHEMA))
 				elementNamespace = null;
 			
+			if (prettyPrint && !isRoot) {
+				writer.append("\n");
+				for (int i = 0; i < depth; i++) {
+					writer.append("\t");
+				}
+			}
 			writer.append("<");
 			boolean isNamespaceDefined = false;
 	
@@ -342,23 +353,29 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false, null);	
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false, null);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1);
 									}
 									else if (value instanceof Map) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
-											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes);
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1);
 										}
 									}
 									else {
-										marshal(writer, value, child, namespaces, false, null);
+										marshal(writer, value, child, namespaces, false, null, depth + 1);
 									}
 								}
+							}
+						}
+						if (prettyPrint) {
+							writer.append("\n");
+							for (int i = 0; i < depth; i++) {
+								writer.append("\t");
 							}
 						}
 					}

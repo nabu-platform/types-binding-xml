@@ -259,7 +259,7 @@ public class XMLParserSAX extends DefaultHandler {
 			throw new SAXException("Can't start an element " + localName + " inside an element that is explicitly set to nil");
 		}
 		
-		if (ignoreCounter >  0) {
+		if (ignoreCounter > 0) {
 			ignoreCounter++;
 			return;
 		}
@@ -425,6 +425,8 @@ public class XMLParserSAX extends DefaultHandler {
 			else
 				throw new SAXException("Expecting either a complex or a simple type but " + intendedType + " is neither");
 		}
+		// reset content if we start a new element as well, otherwise we get trailing content between last closing tag and this opening tag (mostly whitespace...)
+		this.content = null;
 	}
 	
 	private String getCurrentPath() {
