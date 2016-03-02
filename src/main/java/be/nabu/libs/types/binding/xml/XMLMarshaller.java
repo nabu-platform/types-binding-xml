@@ -8,9 +8,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -444,17 +446,22 @@ public class XMLMarshaller {
 
 	private Set<String> getDefinedNamespaces() {
 		if (definedNamespaces == null)
-			definedNamespaces = getDefinedNamespaces(typeInstance);
+			definedNamespaces = getDefinedNamespaces(typeInstance, new ArrayList<ComplexType>());
 		return definedNamespaces;
 	}
-	private Set<String> getDefinedNamespaces(TypeInstance typeInstance) {
+	private Set<String> getDefinedNamespaces(TypeInstance typeInstance, List<ComplexType> blacklist) {
 		Set<String> definedNamespaces = new HashSet<String>();
 		String namespace = typeInstance instanceof Element ? ((Element<?>) typeInstance).getNamespace() : typeInstance.getType().getNamespace(typeInstance.getProperties());
 		if (namespace != null)
 			definedNamespaces.add(namespace);
 		if (typeInstance.getType() instanceof ComplexType) {
-			for (Element<?> child : (ComplexType) typeInstance.getType())
-				definedNamespaces.addAll(getDefinedNamespaces(child));
+			ComplexType type = (ComplexType) typeInstance.getType();
+			if (!blacklist.contains(type)) {
+				blacklist.add(type);
+				for (Element<?> child : TypeUtils.getAllChildren(type)) {
+					definedNamespaces.addAll(getDefinedNamespaces(child, blacklist));
+				}
+			}
 		}
 		return definedNamespaces;
 	}
