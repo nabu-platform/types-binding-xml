@@ -179,11 +179,10 @@ public class XMLMarshaller {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
-		String elementName = ValueUtils.getValue(new NameProperty(), typeInstance.getProperties());
+		String elementName = ValueUtils.getValue(NameProperty.getInstance(), typeInstance.getProperties());
 		if (elementName == null) {
 			elementName = typeInstance.getType().getName(typeInstance.getProperties());
 		}
-		
 		if (elementName.equals(NameProperty.ANY)) {
 			// for an any element with no content > write nothing
 			// otherwise it MUST be a collection
@@ -361,7 +360,8 @@ public class XMLMarshaller {
 										for (Object childValue : (Object[]) value)
 											marshal(writer, childValue, child, namespaces, false, null, depth + 1);
 									}
-									else if (value instanceof Map) {
+									// xsd:any has special handling, don't capture it in the map step
+									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties()))) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
