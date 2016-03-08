@@ -147,7 +147,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified());
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified(), null);
 		bufferedWriter.flush();
 	}
 	
@@ -181,7 +181,7 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified, String parentNamespace) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
@@ -220,18 +220,23 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified, parentNamespace);
 				}
 			}
 		}
 		else {
-			String elementNamespace = ValueUtils.getValue(new NamespaceProperty(), typeInstance.getProperties());
-			if (elementNamespace == null)
+			String elementNamespace = ValueUtils.getValue(NamespaceProperty.getInstance(), typeInstance.getProperties());
+			// if we can not find a namespace, inherit from the parent
+			if (elementNamespace == null) {
+				elementNamespace = parentNamespace;
+			}
+			if (elementNamespace == null) {
 				elementNamespace = typeInstance.getType().getNamespace(typeInstance.getProperties());
-			
+			}
 			// ignore the xml schema namespace
-			if (elementNamespace != null && elementNamespace.equals(Type.XML_SCHEMA))
+			if (elementNamespace != null && elementNamespace.equals(Type.XML_SCHEMA)) {
 				elementNamespace = null;
+			}
 			
 			if (prettyPrint && !isRoot) {
 				writer.append("\n");
@@ -379,22 +384,22 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);	
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
 									}
 									// xsd:any has special handling, don't capture it in the map step
 									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties()))) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
-											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified);
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
 										}
 									}
 									else {
-										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);
+										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
 									}
 								}
 							}
