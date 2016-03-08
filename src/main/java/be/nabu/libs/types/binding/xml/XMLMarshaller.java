@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import be.nabu.libs.property.ValueUtils;
+import be.nabu.libs.property.api.Value;
 import be.nabu.libs.types.CollectionHandlerFactory;
 import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.DefinedTypeResolverFactory;
@@ -111,6 +112,11 @@ public class XMLMarshaller {
 	private boolean prettyPrint = true;
 	
 	/**
+	 * Whether or not individual elements can override the qualified setting
+	 */
+	private boolean allowQualifiedOverride = false;
+	
+	/**
 	 * Namespaces that are already mapped to prefixes
 	 * This allows you to generate xml with specific prefixes
 	 */
@@ -141,7 +147,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0);
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified());
 		bufferedWriter.flush();
 	}
 	
@@ -175,9 +181,27 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
+		
+		boolean newAttributeQualified = attributeQualified;
+		boolean newElementQualified = elementQualified;
+		// this will allow you to override the qualified-ness of elements but it only goes from "qualified" to "unqualified", it does not (currently) allow from "unqualified" to "qualified"
+		if (allowQualifiedOverride) {
+			if (attributeQualified) { 
+				Value<Boolean> property = typeInstance.getProperty(AttributeQualifiedDefaultProperty.getInstance());
+				if (property != null) {
+					newAttributeQualified = property.getValue();
+				}
+			}
+			if (elementQualified) {
+				Value<Boolean> property = typeInstance.getProperty(ElementQualifiedDefaultProperty.getInstance());
+				if (property != null) {
+					newElementQualified = property.getValue();
+				}
+			}
+		}
 		
 		String elementName = ValueUtils.getValue(NameProperty.getInstance(), typeInstance.getProperties());
 		if (elementName == null) {
@@ -196,7 +220,7 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified);
 				}
 			}
 		}
@@ -219,7 +243,7 @@ public class XMLMarshaller {
 			boolean isNamespaceDefined = false;
 	
 			// we need a namespace for this element
-			if (namespaceAware && elementNamespace != null && (isElementQualified() || isRoot)) {
+			if (namespaceAware && elementNamespace != null && (elementQualified || isRoot)) {
 				// this namespace has not yet been defined
 				if (!namespaces.containsKey(elementNamespace)) {
 					// if there is no default namespace yet and we allow using it, use the default one
@@ -252,7 +276,7 @@ public class XMLMarshaller {
 			
 			// if the namespace was not already defined, define it, ignore ##default namespace
 			// if we are in the root and the root namespace was predefined (before marshalling), we still have to print it
-			if (namespaceAware && elementNamespace != null && (!isNamespaceDefined || isRoot) && (isElementQualified() || isRoot) && !elementNamespace.equals("##default")) {
+			if (namespaceAware && elementNamespace != null && (!isNamespaceDefined || isRoot) && (elementQualified || isRoot) && !elementNamespace.equals("##default")) {
 				writer.append(" xmlns");
 				if (namespaces.get(elementNamespace) != null)
 					writer.append(":").append(namespaces.get(elementNamespace));
@@ -261,7 +285,7 @@ public class XMLMarshaller {
 			
 			// if we want to define all the namespaces, check if this still needs to be done
 			// either the elements or the attributes must be qualified
-			if (namespaceAware && !forceDefaultNamespace && forceRootNamespaceDefinition && isRoot && (isElementQualified() || isAttributeQualified())) {
+			if (namespaceAware && !forceDefaultNamespace && forceRootNamespaceDefinition && isRoot && (elementQualified || attributeQualified)) {
 				for (String possibleNamespace : getDefinedNamespaces()) {
 					if (!namespaces.containsKey(possibleNamespace))
 						namespaces.put(possibleNamespace, prefix + namespaceCounter++);
@@ -318,7 +342,7 @@ public class XMLMarshaller {
 								}
 								String marshalledValue = ((Marshallable) type).marshal(value, child.getProperties());
 								writer.append(" ");
-								if (namespaceAware && attribute.getNamespace() != null && isAttributeQualified()) {
+								if (namespaceAware && attribute.getNamespace() != null && attributeQualified) {
 									if (!namespaces.containsKey(attribute.getNamespace())) {
 										namespaces.put(attribute.getNamespace(), prefix + namespaceCounter++);
 										writer.append("xmlns:").append(namespaces.get(attribute.getNamespace())).append("=\"").append(attribute.getNamespace()).append("\" ");
@@ -355,22 +379,22 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1);	
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);
 									}
 									// xsd:any has special handling, don't capture it in the map step
 									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties()))) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
-											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1);
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified);
 										}
 									}
 									else {
-										marshal(writer, value, child, namespaces, false, null, depth + 1);
+										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified);
 									}
 								}
 							}
@@ -383,7 +407,7 @@ public class XMLMarshaller {
 						}
 					}
 					writer.append("</");
-					if (namespaceAware && elementNamespace != null && namespaces.get(elementNamespace) != null && (isElementQualified() || isRoot))
+					if (namespaceAware && elementNamespace != null && namespaces.get(elementNamespace) != null && (elementQualified || isRoot))
 						writer.append(namespaces.get(elementNamespace)).append(":");
 					writer.append(elementName).append(">");
 				}
@@ -421,7 +445,7 @@ public class XMLMarshaller {
 					}
 					writer.append(encode(marshalledValue));
 					writer.append("</");
-					if (elementNamespace != null && namespaces.get(elementNamespace) != null && (isElementQualified() || isRoot))
+					if (elementNamespace != null && namespaces.get(elementNamespace) != null && (elementQualified || isRoot))
 						writer.append(namespaces.get(elementNamespace)).append(":");
 					writer.append(elementName).append(">");
 				}
@@ -546,5 +570,13 @@ public class XMLMarshaller {
 	public void setXsiType(String xsiType) {
 		this.xsiType = xsiType;
 	}
-	
+
+	public boolean isAllowQualifiedOverride() {
+		return allowQualifiedOverride;
+	}
+
+	public void setAllowQualifiedOverride(boolean allowQualifiedOverride) {
+		this.allowQualifiedOverride = allowQualifiedOverride;
+	}
+
 }
