@@ -251,7 +251,8 @@ public class XMLMarshaller {
 			writer.append(elementName);
 			
 			// if the namespace was not already defined, define it, ignore ##default namespace
-			if (namespaceAware && elementNamespace != null && !isNamespaceDefined && (isElementQualified() || isRoot) && !elementNamespace.equals("##default")) {
+			// if we are in the root and the root namespace was predefined (before marshalling), we still have to print it
+			if (namespaceAware && elementNamespace != null && (!isNamespaceDefined || isRoot) && (isElementQualified() || isRoot) && !elementNamespace.equals("##default")) {
 				writer.append(" xmlns");
 				if (namespaces.get(elementNamespace) != null)
 					writer.append(":").append(namespaces.get(elementNamespace));
