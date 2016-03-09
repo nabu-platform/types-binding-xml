@@ -482,7 +482,12 @@ public class XMLParserSAX extends DefaultHandler {
 			}
 			Object convertedContent = null;
 			if (content != null && content.length() > 0) {
-				if (!(elementStack.peek().getType() instanceof Unmarshallable)) {
+				Type typeToCheck = elementStack.peek().getType();
+				while (typeToCheck != null && !(typeToCheck instanceof Unmarshallable)) {
+					typeToCheck = typeToCheck.getSuperType();
+				}
+				// no unmarshallable type found in the super types
+				if (typeToCheck == null) {
 					if (elementStack.peek().getType() instanceof SimpleType && (InputStream.class.isAssignableFrom(((SimpleType) elementStack.peek().getType()).getInstanceClass()) || byte[].class.isAssignableFrom(((SimpleType) elementStack.peek().getType()).getInstanceClass()))) {
 						try {
 							ReadableContainer<ByteBuffer> transcodedBytes = TranscoderUtils.transcodeBytes(IOUtils.wrap(content.getBytes("ASCII"), true), new Base64Decoder());
@@ -502,7 +507,7 @@ public class XMLParserSAX extends DefaultHandler {
 					}
 				}
 				else {
-					convertedContent = ((Unmarshallable<?>) elementStack.peek().getType()).unmarshal(content, elementStack.peek().getProperties());
+					convertedContent = ((Unmarshallable<?>) typeToCheck).unmarshal(content, elementStack.peek().getProperties());
 				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {

@@ -432,6 +432,9 @@ public class XMLMarshaller {
 				else {
 					writer.append(">");
 					SimpleType<?> simpleType = (SimpleType<?>) typeInstance.getType();
+					while (simpleType != null && !(simpleType instanceof Marshallable)) {
+						simpleType = (SimpleType<?>) simpleType.getSuperType();
+					}
 					String marshalledValue;
 					if (!(simpleType instanceof Marshallable)) {
 						if ((content instanceof InputStream && marshalStreams) || content instanceof byte[]) {
