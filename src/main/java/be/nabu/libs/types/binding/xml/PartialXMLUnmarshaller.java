@@ -33,6 +33,8 @@ public class PartialXMLUnmarshaller implements PartialUnmarshaller {
 	private Value<?> [] values;
 	private Map<String, String> namespaces;
 	
+	private boolean camelCaseDashes, camelCaseUnderscores, trimContent = true, ignoreUndefined;
+	
 	public PartialXMLUnmarshaller(Map<String, String> namespaces, ComplexType type, Charset charset, Window [] windows, Value<?>...values) {
 		this.type = type;
 		this.charset = charset;
@@ -61,7 +63,13 @@ public class PartialXMLUnmarshaller implements PartialUnmarshaller {
 				((BasicStreamReader) streamReader).getInputElementStack().addNsBinding(
 					prefix, namespaces.get(prefix));
 			}
-			XMLParserStAX staxParser = new XMLParserStAX(type, windows, values);
+			XMLParserSAX saxParser = new XMLParserSAX(type, windows, values);
+			saxParser.setCamelCaseDashes(camelCaseDashes);
+			saxParser.setCamelCaseUnderscores(camelCaseUnderscores);
+			saxParser.setTrimContent(trimContent);
+			saxParser.setIgnoreUndefined(ignoreUndefined);
+			saxParser.setCharset(charset);
+			XMLParserStAX staxParser = new XMLParserStAX(saxParser);
 			List<ComplexContent> results = new ArrayList<ComplexContent>();
 			for (int i = 0; i < batchSize; i++) {
 				staxParser.parse(streamReader);
@@ -76,4 +84,37 @@ public class PartialXMLUnmarshaller implements PartialUnmarshaller {
 			throw new MarshalException(e);
 		}
 	}
+
+	public boolean isCamelCaseDashes() {
+		return camelCaseDashes;
+	}
+
+	public void setCamelCaseDashes(boolean camelCaseDashes) {
+		this.camelCaseDashes = camelCaseDashes;
+	}
+
+	public boolean isCamelCaseUnderscores() {
+		return camelCaseUnderscores;
+	}
+
+	public void setCamelCaseUnderscores(boolean camelCaseUnderscores) {
+		this.camelCaseUnderscores = camelCaseUnderscores;
+	}
+
+	public boolean isTrimContent() {
+		return trimContent;
+	}
+
+	public void setTrimContent(boolean trimContent) {
+		this.trimContent = trimContent;
+	}
+
+	public boolean isIgnoreUndefined() {
+		return ignoreUndefined;
+	}
+
+	public void setIgnoreUndefined(boolean ignoreUndefined) {
+		this.ignoreUndefined = ignoreUndefined;
+	}
+	
 }

@@ -50,7 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = true, camelCaseDashes, camelCaseUnderscores;
+	private boolean trimContent = true, camelCaseDashes, camelCaseUnderscores, ignoreUndefined;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -64,6 +64,7 @@ public class XMLBinding extends BaseTypeBinding {
 		saxHandler.setCamelCaseDashes(camelCaseDashes);
 		saxHandler.setCamelCaseUnderscores(camelCaseUnderscores);
 		saxHandler.setTrimContent(isTrimContent());
+		saxHandler.setIgnoreUndefined(ignoreUndefined);
 		saxHandler.setResource(resource);
 		saxHandler.setCharset(charset);
 		return unmarshal(saxHandler, resource, windows, values);
@@ -96,7 +97,7 @@ public class XMLBinding extends BaseTypeBinding {
 			try {
 				// set up the stax parser
 				XMLParserStAX xmlParser = new XMLParserStAX(saxHandler);
-				// do the actual parrsing
+				// do the actual parsing
 				XMLStreamReader parser = factory.createXMLStreamReader(reader);
 				xmlParser.parse(parser);
 				return xmlParser.getInstance();
@@ -138,4 +139,13 @@ public class XMLBinding extends BaseTypeBinding {
 	public void setCamelCaseUnderscores(boolean camelCaseUnderscores) {
 		this.camelCaseUnderscores = camelCaseUnderscores;
 	}
+
+	public boolean isIgnoreUndefined() {
+		return ignoreUndefined;
+	}
+
+	public void setIgnoreUndefined(boolean ignoreUndefined) {
+		this.ignoreUndefined = ignoreUndefined;
+	}
+	
 }

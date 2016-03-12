@@ -59,6 +59,7 @@
 		<firstName>John9</firstName>
 		<age>31</age>
 		<lastName>Doe9</lastName>
+		<email>john.doe@example.com</email>
 		<startDay xsi:nil="true" />
 	</employees>
 	<employees id="10">

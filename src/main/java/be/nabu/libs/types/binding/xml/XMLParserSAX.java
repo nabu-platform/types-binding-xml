@@ -76,8 +76,7 @@ public class XMLParserSAX extends DefaultHandler {
 	/**
 	 * If a field is encountered that does not exist in the definition, should it simply be ignored or should an exception be thrown?
 	 */
-	// TODO: should be false by default and settable with properties
-	private boolean ignoreUndefined = true;
+	private boolean ignoreUndefined;
 	
 	/**
 	 * When a field is ignored, we need to ignore all child fields as well
@@ -562,7 +561,12 @@ public class XMLParserSAX extends DefaultHandler {
 
 					if (currentObject == null) {
 						// take a snapshotted copy of the namespaces
-						windowedList = new WindowedList(resource, activeWindow, new PartialXMLUnmarshaller(new HashMap<String, String>(namespaces), (ComplexType) currentInstance.getType(), charset, windows, elementStack.peek().getProperties()));
+						PartialXMLUnmarshaller unmarshaller = new PartialXMLUnmarshaller(new HashMap<String, String>(namespaces), (ComplexType) currentInstance.getType(), charset, windows, elementStack.peek().getProperties());
+						unmarshaller.setCamelCaseDashes(camelCaseDashes);
+						unmarshaller.setCamelCaseUnderscores(camelCaseUnderscores);
+						unmarshaller.setIgnoreUndefined(ignoreUndefined);
+						unmarshaller.setTrimContent(trimContent);
+						windowedList = new WindowedList(resource, activeWindow, unmarshaller);
 						contentStack.peek().set(localName, windowedList);
 					}
 					else if (currentObject instanceof WindowedList) {
