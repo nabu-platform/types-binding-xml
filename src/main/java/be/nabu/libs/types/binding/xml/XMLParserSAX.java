@@ -67,6 +67,8 @@ public class XMLParserSAX extends DefaultHandler {
 	private boolean camelCaseDashes = false;
 	private boolean camelCaseUnderscores = false;
 	
+	private boolean allowSuperTypes = false;
+	
 	private Charset charset = Charset.forName("UTF-8");
 	
 	private ReadableResource resource;
@@ -345,8 +347,14 @@ public class XMLParserSAX extends DefaultHandler {
 				throw new SAXException("The root tag " + localName + " does not match the expected name: " + element.getName());
 			if (actualType != null) {
 				// intended type can be null if no complex type is given
-				if (intendedType != null && !TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)))
-					throw new SAXException("The xsi type " + actualType + " is not compatible with the defined type " + intendedType);
+				if (intendedType != null && !TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)) && TypeUtils.getUpcastPath(actualType, intendedType).isEmpty()) {
+					if (!allowSuperTypes || (!TypeUtils.isSubset(new BaseTypeInstance(intendedType), new BaseTypeInstance(actualType)) && TypeUtils.getUpcastPath(intendedType, actualType).isEmpty())) {
+						throw new SAXException("The xsi type " + actualType + " is not compatible with the defined type " + intendedType);
+					}
+					else {
+						intendedType = actualType;
+					}
+				}
 				else
 					intendedType = actualType;
 			}
@@ -681,4 +689,13 @@ public class XMLParserSAX extends DefaultHandler {
 	public void setCamelCaseUnderscores(boolean camelCaseUnderscores) {
 		this.camelCaseUnderscores = camelCaseUnderscores;
 	}
+
+	public boolean isAllowSuperTypes() {
+		return allowSuperTypes;
+	}
+
+	public void setAllowSuperTypes(boolean allowSuperTypes) {
+		this.allowSuperTypes = allowSuperTypes;
+	}
+	
 }
