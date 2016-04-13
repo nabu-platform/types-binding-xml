@@ -31,6 +31,7 @@ import be.nabu.libs.types.api.TypeRegistry;
 import be.nabu.libs.types.api.Unmarshallable;
 import be.nabu.libs.types.base.ComplexElementImpl;
 import be.nabu.libs.types.base.DynamicElement;
+import be.nabu.libs.types.binding.BindingUtils;
 import be.nabu.libs.types.binding.api.Window;
 import be.nabu.libs.types.binding.api.WindowedList;
 import be.nabu.libs.types.java.BeanType;
@@ -213,42 +214,12 @@ public class XMLParserSAX extends DefaultHandler {
 		instance = null;
 	}
 
-	private static String camelCaseCharacter(String name, char character) {
-		StringBuilder builder = new StringBuilder();
-		int index = -1;
-		int lastIndex = 0;
-		boolean first = true;
-		while ((index = name.indexOf(character, index)) >= lastIndex) {
-			String substring = name.substring(lastIndex, index);
-			if (substring.isEmpty()) {
-				continue;
-			}
-			else if (first) {
-				builder.append(substring);
-				first = false;
-			}
-			else {
-				builder.append(substring.substring(0, 1).toUpperCase() + substring.substring(1));
-			}
-			lastIndex = index + 1;
-		}
-		if (lastIndex < name.length() - 1) {
-			if (first) {
-				builder.append(name.substring(lastIndex));
-			}
-			else {
-				builder.append(name.substring(lastIndex, lastIndex + 1).toUpperCase()).append(name.substring(lastIndex + 1));
-			}
-		}
-		return builder.toString();
-	}
-	
 	private String preprocess(String name) {
 		if (camelCaseDashes) {
-			name = camelCaseCharacter(name, '-');
+			name = BindingUtils.camelCaseCharacter(name, '-');
 		}
 		if (camelCaseUnderscores) {
-			name = camelCaseCharacter(name, '_');			
+			name = BindingUtils.camelCaseCharacter(name, '_');			
 		}
 		return name;
 	}
