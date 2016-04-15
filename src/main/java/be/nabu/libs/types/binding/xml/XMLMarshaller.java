@@ -18,14 +18,17 @@ import java.util.Set;
 
 import be.nabu.libs.property.ValueUtils;
 import be.nabu.libs.property.api.Value;
+import be.nabu.libs.types.BaseTypeInstance;
 import be.nabu.libs.types.CollectionHandlerFactory;
 import be.nabu.libs.types.ComplexContentWrapperFactory;
 import be.nabu.libs.types.DefinedTypeResolverFactory;
+import be.nabu.libs.types.SimpleTypeWrapperFactory;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.Attribute;
 import be.nabu.libs.types.api.CollectionHandlerProvider;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexType;
+import be.nabu.libs.types.api.DefinedSimpleType;
 import be.nabu.libs.types.api.DefinedType;
 import be.nabu.libs.types.api.DefinedTypeResolver;
 import be.nabu.libs.types.api.Element;
@@ -315,6 +318,16 @@ public class XMLMarshaller {
 			if (additionalAttributes != null) {
 				for (String key : additionalAttributes.keySet()) {
 					writer.append(" ").append(key).append("=\"").append(encodeAttribute(additionalAttributes.get(key))).append("\"");
+				}
+			}
+			
+			if (content != null && typeInstance.getType() instanceof BeanType && ((BeanType) typeInstance.getType()).getBeanClass().equals(Object.class)) {
+				DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(content.getClass());
+				if (wrap != null) {
+					typeInstance = new BaseTypeInstance(wrap, typeInstance.getProperties());
+				}
+				else {
+					typeInstance = new BaseTypeInstance(ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content).getType(), typeInstance.getProperties());
 				}
 			}
 			
