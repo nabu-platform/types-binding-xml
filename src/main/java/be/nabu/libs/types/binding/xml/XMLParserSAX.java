@@ -5,8 +5,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -490,11 +490,26 @@ public class XMLParserSAX extends DefaultHandler {
 				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
-				List<?> list = (List<?>) contentStack.peek().get(localName);
-				if (list == null)
+				Object list = contentStack.peek().get(localName);
+				if (list == null) {
 					contentStack.peek().set(localName + "[0]", convertedContent);
-				else
-					contentStack.peek().set(localName + "[" + list.size() + "]", convertedContent);
+				}
+				else {
+					int size = 0;
+					if (list instanceof Collection) {
+						size = ((Collection) list).size();
+					}
+					else if (list instanceof Map) {
+						size = ((Map) list).size();
+					}
+					else if (list instanceof Object[]) {
+						size = ((Object[]) list).length;
+					}
+					else {
+						throw new IllegalArgumentException("Do not currently support a list of type: " + list.getClass());
+					}
+					contentStack.peek().set(localName + "[" + size + "]", convertedContent);
+				}
 			}
 			else if (isAny) {
 				contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", convertedContent);
