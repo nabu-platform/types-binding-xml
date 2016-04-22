@@ -486,7 +486,12 @@ public class XMLParserSAX extends DefaultHandler {
 					}
 				}
 				else {
-					convertedContent = ((Unmarshallable<?>) typeToCheck).unmarshal(content, elementStack.peek().getProperties());
+					try {
+						convertedContent = ((Unmarshallable<?>) typeToCheck).unmarshal(content, elementStack.peek().getProperties());
+					}
+					catch (RuntimeException e) {
+						throw new SAXException("Can not parse field '" + localName + "'", e);
+					}
 				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
