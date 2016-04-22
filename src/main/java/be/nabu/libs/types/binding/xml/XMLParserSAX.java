@@ -246,6 +246,7 @@ public class XMLParserSAX extends DefaultHandler {
 
 		Type actualType = null;
 		
+		boolean foundCollection = false;
 		// we need to go through the attributes first because it might contain things like xsi:type to indicate another type
 		for (int i = 0; i < attributes.getLength(); i++) {
 			String namespace = attributes.getURI(i);
@@ -277,8 +278,16 @@ public class XMLParserSAX extends DefaultHandler {
 					}
 				}
 			}
+			else if ("collectionIndex".equals(attributes.getLocalName(i))) {
+				foundCollection = true;
+				collectionIndexes.push(attributes.getValue(i));
+			}
 			else
 				elementAttributes.put(attributes.getLocalName(i), attributes.getValue(i));
+		}
+		// always push something on collection indexes
+		if (!foundCollection) {
+			collectionIndexes.push(null);
 		}
 
 		Element<?> element = null;
@@ -343,13 +352,7 @@ public class XMLParserSAX extends DefaultHandler {
 					instance = contentStack.peek();
 				
 				pathStack.push(localName);
-				boolean foundCollection = false;
 				for (String key : elementAttributes.keySet()) {
-					if ("collectionIndex".equals(key)) {
-						foundCollection = true;
-						collectionIndexes.push(elementAttributes.get(key));
-						continue;
-					}
 					key = preprocess(key);
 					Element<?> attributeElement = complexType.get(key);
 					if (attributeElement == null) {
@@ -387,9 +390,6 @@ public class XMLParserSAX extends DefaultHandler {
 						}
 					}
 					contentStack.peek().set("@" + key, unmarshalled);
-				}
-				if (!foundCollection) {
-					collectionIndexes.push(null);
 				}
 				// if it belongs in a window, store the starting offset so we can use it when the element ends
 				Window window = getWindow();
@@ -453,6 +453,9 @@ public class XMLParserSAX extends DefaultHandler {
 			}
 		}
 		
+		// always pop because you always push
+		Object index = collectionIndexes.pop();
+		
 		// this is the end of a simple type
 		if (isSimpleType) {
 			String content = !isNil && this.content != null ? this.content.toString() : null;
@@ -496,25 +499,16 @@ public class XMLParserSAX extends DefaultHandler {
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
 				Object list = contentStack.peek().get(localName);
-				if (list == null) {
-					contentStack.peek().set(localName + "[0]", convertedContent);
-				}
-				else {
-					int size = 0;
-					if (list instanceof Collection) {
-						size = ((Collection) list).size();
-					}
-					else if (list instanceof Map) {
-						size = ((Map) list).size();
-					}
-					else if (list instanceof Object[]) {
-						size = ((Object[]) list).length;
+				if (index == null) {
+					if (list != null) {
+						CollectionHandlerProvider provider = collectionHandler.getHandler(list.getClass());
+						index = provider.getAsCollection(list).size();
 					}
 					else {
-						throw new IllegalArgumentException("Do not currently support a list of type: " + list.getClass());
+						index = 0;
 					}
-					contentStack.peek().set(localName + "[" + size + "]", convertedContent);
 				}
+				contentStack.peek().set(localName + "[" + index + "]", convertedContent);
 			}
 			else if (isAny) {
 				contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", convertedContent);
@@ -539,8 +533,6 @@ public class XMLParserSAX extends DefaultHandler {
 			if (!onStack.equals(localName))
 				throw new SAXException("Closing tag " + localName + " did not have an opening tag, found " + onStack);
 
-			// always pop because you always push
-			Object index = collectionIndexes.pop();
 			// append the complex content to the current path, beware of lists
 			if (elementStack.peek() != null && elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
 				Object currentObject = contentStack.peek().get(localName);
