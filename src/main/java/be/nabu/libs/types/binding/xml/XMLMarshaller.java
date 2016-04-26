@@ -150,7 +150,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified(), null);
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified(), null, false);
 		bufferedWriter.flush();
 	}
 	
@@ -184,7 +184,7 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified, String parentNamespace) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified, String parentNamespace, boolean isAny) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
@@ -223,7 +223,7 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified, parentNamespace);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified, parentNamespace, true);
 				}
 			}
 		}
@@ -330,7 +330,7 @@ public class XMLMarshaller {
 					typeInstance = new BaseTypeInstance(ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content).getType(), typeInstance.getProperties());
 				}
 			}
-			
+
 			if (typeInstance.getType() instanceof ComplexType) {
 				ComplexType complexType = (ComplexType) typeInstance.getType();
 				ComplexContent complexContent = content == null || content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content);
@@ -341,7 +341,8 @@ public class XMLMarshaller {
 				if (complexContent != null) {
 					// if you allow xsi and the complex content is actually a defined extension of the complex type, add it
 					// it doesn't specifically check for extension because this should be enforced by the types, not the marshaller
-					if (allowXSI && !complexContent.getType().equals(complexType) && complexContent.getType() instanceof DefinedType) {
+					// for any, also put the xsi:type, otherwise the other end doesn't know which type you mean
+					if (allowXSI && (!complexContent.getType().equals(complexType) || isAny) && complexContent.getType() instanceof DefinedType) {
 						// TODO: should use namespace prefix to allow other tools to also unmarshal it
 						writer.append(" xsi:type=\"" + ((DefinedType) complexContent.getType()).getId() + "\"");
 						complexType = complexContent.getType();
@@ -397,22 +398,22 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);	
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
 									}
 									// xsd:any has special handling, don't capture it in the map step
 									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties()))) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
-											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
 										}
 									}
 									else {
-										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace);
+										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
 									}
 								}
 							}
@@ -436,6 +437,10 @@ public class XMLMarshaller {
 				}
 			}
 			else {
+				if (allowXSI && isAny && typeInstance.getType() instanceof DefinedType) {
+					// TODO: should use namespace prefix to allow other tools to also unmarshal it
+					writer.append(" xsi:type=\"" + ((DefinedType) typeInstance.getType()).getId() + "\"");
+				}
 				if (content == null) {
 					// only set an explicit nil if you allow xsi and the property allows for nillable values
 					if (allowXSI && ValueUtils.getValue(NillableProperty.getInstance(), typeInstance.getProperties()))

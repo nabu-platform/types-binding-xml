@@ -316,7 +316,7 @@ public class XMLParserSAX extends DefaultHandler {
 				// how to determine that it's a text field...?
 				// the type is an empty object type
 				// if there is no actual type (no xsi), just interpret as string
-				element = new DynamicElement(element, actualType == null ? new be.nabu.libs.types.simple.String() : new BeanType<Object>(Object.class), localName);
+				element = new DynamicElement(element, actualType == null ? new be.nabu.libs.types.simple.String() : actualType, localName);
 			}
 		}
 		if (ignoreCounter == 0) {
@@ -349,7 +349,6 @@ public class XMLParserSAX extends DefaultHandler {
 				// set it as the main instance
 				if (contentStack.size() == 1)
 					instance = contentStack.peek();
-				
 				pathStack.push(localName);
 				for (String key : elementAttributes.keySet()) {
 					key = preprocess(key);
@@ -484,7 +483,7 @@ public class XMLParserSAX extends DefaultHandler {
 						}
 					}
 					else {
-						throw new SAXException("The element '" + localName + "' in " + getCurrentPath() + " can not be unmarshalled");
+						throw new SAXException("The element '" + localName + "' in " + getCurrentPath() + " can not be unmarshalled because it is of type: " + elementStack.peek().getType());
 					}
 				}
 				else {
