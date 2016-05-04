@@ -62,7 +62,7 @@ public class XMLParserSAX extends DefaultHandler {
 	 */
 	private boolean allowExtensions = true;
 	
-	private boolean trimContent = true;
+	private boolean trimContent = false;
 	
 	private boolean camelCaseDashes = false;
 	private boolean camelCaseUnderscores = false;

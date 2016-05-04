@@ -50,7 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = true, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes;
+	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
