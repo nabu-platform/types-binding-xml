@@ -351,25 +351,28 @@ public class XMLMarshaller {
 						writer.append(" xsi:type=\"" + xsiType + "\"");
 					}
 					for (Element<?> child : TypeUtils.getAllChildren(complexType)) {
-						if (child instanceof Attribute) {
+						if (child instanceof Attribute || child.getName().startsWith("@")) {
 							Object value = complexContent.get(child.getName());
 							if (value != null) {
-								Attribute<?> attribute = (Attribute<?>) child;
-								SimpleType<?> type = attribute.getType();
+								SimpleType<?> type = (SimpleType<?>) child.getType();
 								if (!(type instanceof Marshallable)) {
 									throw new MarshalException("The attribute " + type.getName() + " can not be marshalled");
 								}
 								String marshalledValue = ((Marshallable) type).marshal(value, child.getProperties());
 								writer.append(" ");
-								if (namespaceAware && attribute.getNamespace() != null && attributeQualified) {
-									if (!namespaces.containsKey(attribute.getNamespace())) {
-										namespaces.put(attribute.getNamespace(), prefix + namespaceCounter++);
-										writer.append("xmlns:").append(namespaces.get(attribute.getNamespace())).append("=\"").append(attribute.getNamespace()).append("\" ");
+								if (namespaceAware && child.getNamespace() != null && attributeQualified) {
+									if (!namespaces.containsKey(child.getNamespace())) {
+										namespaces.put(child.getNamespace(), prefix + namespaceCounter++);
+										writer.append("xmlns:").append(namespaces.get(child.getNamespace())).append("=\"").append(child.getNamespace()).append("\" ");
 									}
-									if (namespaces.get(attribute.getNamespace()) != null)
-										writer.append(namespaces.get(attribute.getNamespace())).append(":");
+									if (namespaces.get(child.getNamespace()) != null)
+										writer.append(namespaces.get(child.getNamespace())).append(":");
 								}
-								writer.append(attribute.getName()).append("=\"").append(encodeAttribute(marshalledValue)).append("\"");
+								String name = child.getName();
+								if (name.startsWith("@")) {
+									name = name.substring(1);
+								}
+								writer.append(name).append("=\"").append(encodeAttribute(marshalledValue)).append("\"");
 							}
 						}
 						else {
@@ -392,7 +395,7 @@ public class XMLMarshaller {
 					// just loop over the non-attribute children
 					else {
 						for (Element<?> child : TypeUtils.getAllChildren(complexType)) {
-							if (!(child instanceof Attribute)) {
+							if (!(child instanceof Attribute) && !child.getName().startsWith("@")) {
 								Object value = complexContent.get(child.getName());
 								// recurse
 								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
