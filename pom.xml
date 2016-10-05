@@ -36,10 +36,6 @@
 			<groupId>be.nabu.libs.types</groupId>
 			<artifactId>types-java</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>be.nabu.libs.resources</groupId>
-			<artifactId>resources-api</artifactId>
-		</dependency>
 
 		<!-- IMPORTANT: this includes an OLD stax 1 api which does not work with 
 			the code: M2_REPO/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar manually 
