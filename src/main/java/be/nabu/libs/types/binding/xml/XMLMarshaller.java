@@ -407,8 +407,13 @@ public class XMLMarshaller {
 										for (Object childValue : (Object[]) value)
 											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
 									}
+									else if (value instanceof Iterable) {
+										for (Object childValue : (Iterable) value)
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+									}
 									// xsd:any has special handling, don't capture it in the map step
-									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties()))) {
+									// if the map has been interpreted into a type (e.g. through map type) so it is not exposed as a list, don't use the collection approach
+									else if (value instanceof Map && !NameProperty.ANY.equals(ValueUtils.getValue(NameProperty.getInstance(), child.getProperties())) && child.getType().isList(child.getProperties())) {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
