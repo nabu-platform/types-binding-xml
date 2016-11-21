@@ -354,6 +354,9 @@ public class XMLParserSAX extends DefaultHandler {
 					key = preprocess(key);
 					Element<?> attributeElement = complexType.get(key);
 					if (attributeElement == null) {
+						attributeElement = complexType.get("@" + key);
+					}
+					if (attributeElement == null) {
 						if (ignoreUndefined) {
 							continue;
 						}
