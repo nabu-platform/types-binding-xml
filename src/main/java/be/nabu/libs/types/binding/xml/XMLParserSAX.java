@@ -71,6 +71,8 @@ public class XMLParserSAX extends DefaultHandler {
 	
 	private Charset charset = Charset.forName("UTF-8");
 	
+	private boolean forceRootTypeMatch = true;
+	
 	private ReadableResource resource;
 	
 	private Map<String, String> namespaces = new HashMap<String, String>();
@@ -322,7 +324,7 @@ public class XMLParserSAX extends DefaultHandler {
 		if (ignoreCounter == 0) {
 			elementStack.push(contentStack.isEmpty() ? null : element);
 			Type intendedType = elementStack.peek() == null ? type : elementStack.peek().getType();
-			if (contentStack.isEmpty() && !element.getName().equals(localName))
+			if (contentStack.isEmpty() && forceRootTypeMatch && !element.getName().equals(localName))
 				throw new SAXException("The root tag " + localName + " does not match the expected name: " + element.getName());
 			if (actualType != null) {
 				boolean allowAll = intendedType instanceof BeanType && ((BeanType) intendedType).getBeanClass().equals(Object.class);
@@ -681,6 +683,14 @@ public class XMLParserSAX extends DefaultHandler {
 
 	public void setAllowSuperTypes(boolean allowSuperTypes) {
 		this.allowSuperTypes = allowSuperTypes;
+	}
+
+	public boolean isForceRootTypeMatch() {
+		return forceRootTypeMatch;
+	}
+
+	public void setForceRootTypeMatch(boolean forceRootTypeMatch) {
+		this.forceRootTypeMatch = forceRootTypeMatch;
 	}
 	
 }

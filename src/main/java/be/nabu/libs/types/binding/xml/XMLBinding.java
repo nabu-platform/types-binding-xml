@@ -50,7 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes;
+	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -68,6 +68,7 @@ public class XMLBinding extends BaseTypeBinding {
 		saxHandler.setResource(resource);
 		saxHandler.setCharset(charset);
 		saxHandler.setAllowSuperTypes(allowSuperTypes);
+		saxHandler.setForceRootTypeMatch(forceRootTypeMatch);
 		return unmarshal(saxHandler, resource, windows, values);
 	}
 
@@ -155,6 +156,14 @@ public class XMLBinding extends BaseTypeBinding {
 
 	public void setAllowSuperTypes(boolean allowSuperTypes) {
 		this.allowSuperTypes = allowSuperTypes;
+	}
+
+	public boolean isForceRootTypeMatch() {
+		return forceRootTypeMatch;
+	}
+
+	public void setForceRootTypeMatch(boolean forceRootTypeMatch) {
+		this.forceRootTypeMatch = forceRootTypeMatch;
 	}
 
 }
