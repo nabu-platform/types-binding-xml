@@ -45,6 +45,8 @@ import be.nabu.libs.types.properties.MinOccursProperty;
 import be.nabu.libs.types.properties.NameProperty;
 import be.nabu.libs.types.properties.NamespaceProperty;
 import be.nabu.libs.types.properties.NillableProperty;
+import be.nabu.libs.types.resultset.ResultSetWithType;
+import be.nabu.libs.types.resultset.ResultSetWithTypeCollectionHandler;
 import be.nabu.utils.codec.TranscoderUtils;
 import be.nabu.utils.codec.impl.Base64Encoder;
 import be.nabu.utils.io.IOUtils;
@@ -398,7 +400,7 @@ public class XMLMarshaller {
 							if (!(child instanceof Attribute) && !child.getName().startsWith("@")) {
 								Object value = complexContent.get(child.getName());
 								// recurse
-								if (value != null || ValueUtils.getValue(new MinOccursProperty(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
+								if (value != null || ValueUtils.getValue(MinOccursProperty.getInstance(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
 											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);	
@@ -418,6 +420,13 @@ public class XMLMarshaller {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
 											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+										}
+									}
+									// should really refactor this to use the generic collection handling but this is _very_ old code
+									else if (value instanceof ResultSetWithType) {
+										Iterable<?> iterable = new ResultSetWithTypeCollectionHandler().getAsIterable((ResultSetWithType) value);
+										for (Object childValue : iterable) {
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
 										}
 									}
 									else {
