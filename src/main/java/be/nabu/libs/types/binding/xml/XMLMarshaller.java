@@ -622,4 +622,12 @@ public class XMLMarshaller {
 		this.allowQualifiedOverride = allowQualifiedOverride;
 	}
 
+	public boolean isPrettyPrint() {
+		return prettyPrint;
+	}
+
+	public void setPrettyPrint(boolean prettyPrint) {
+		this.prettyPrint = prettyPrint;
+	}
+
 }

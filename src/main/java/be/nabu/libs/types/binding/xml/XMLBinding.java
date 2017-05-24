@@ -50,7 +50,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch;
+	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -115,7 +115,9 @@ public class XMLBinding extends BaseTypeBinding {
 
 	@Override
 	public void marshal(OutputStream output, ComplexContent content, Value<?>... values) throws IOException {
-		new XMLMarshaller(new BaseTypeInstance(type, values)).marshal(output, charset, content);
+		XMLMarshaller xmlMarshaller = new XMLMarshaller(new BaseTypeInstance(type, values));
+		xmlMarshaller.setPrettyPrint(prettyPrint);
+		xmlMarshaller.marshal(output, charset, content);
 	}
 
 	public boolean isTrimContent() {
@@ -164,6 +166,14 @@ public class XMLBinding extends BaseTypeBinding {
 
 	public void setForceRootTypeMatch(boolean forceRootTypeMatch) {
 		this.forceRootTypeMatch = forceRootTypeMatch;
+	}
+
+	public boolean isPrettyPrint() {
+		return prettyPrint;
+	}
+
+	public void setPrettyPrint(boolean prettyPrint) {
+		this.prettyPrint = prettyPrint;
 	}
 
 }
