@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -28,12 +30,14 @@ import be.nabu.libs.types.api.SimpleType;
 import be.nabu.libs.types.api.Type;
 import be.nabu.libs.types.api.TypeRegistry;
 import be.nabu.libs.types.api.Unmarshallable;
+import be.nabu.libs.types.base.CollectionFormat;
 import be.nabu.libs.types.base.ComplexElementImpl;
 import be.nabu.libs.types.base.DynamicElement;
 import be.nabu.libs.types.binding.BindingUtils;
 import be.nabu.libs.types.binding.api.Window;
 import be.nabu.libs.types.binding.api.WindowedList;
 import be.nabu.libs.types.java.BeanType;
+import be.nabu.libs.types.properties.CollectionFormatProperty;
 import be.nabu.libs.types.properties.NameProperty;
 import be.nabu.utils.codec.TranscoderUtils;
 import be.nabu.utils.codec.impl.Base64Decoder;
@@ -385,11 +389,28 @@ public class XMLParserSAX extends DefaultHandler {
 						}
 					}
 					else {
-						try {
-							unmarshalled = ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties());
+						// we can have a list in attributes by using a collection format
+						if (attributeElement.getType().isList(attributeElement.getProperties())) {
+							Value<CollectionFormat> property = attributeElement.getProperty(CollectionFormatProperty.getInstance());
+							CollectionFormat format = property == null ? CollectionFormat.SSV : property.getValue();
+							if (elementAttributes.get(key) != null && !elementAttributes.get(key).trim().isEmpty()) {
+								List<Object> parts = new ArrayList<Object>();
+								for (String part : elementAttributes.get(key).split("\\Q" + format.getCharacter() + "\\E")) {
+									parts.add(((Unmarshallable<?>) attributeElement.getType()).unmarshal(part, attributeElement.getProperties()));
+								}
+								unmarshalled = parts;
+							}
+							else {
+								unmarshalled = null;
+							}
 						}
-						catch (RuntimeException e) {
-							throw new RuntimeException("Could not parse attribute: " + key, e);
+						else {
+							try {
+								unmarshalled = ((Unmarshallable<?>) attributeElement.getType()).unmarshal(elementAttributes.get(key), attributeElement.getProperties());
+							}
+							catch (RuntimeException e) {
+								throw new RuntimeException("Could not parse attribute: " + key, e);
+							}
 						}
 					}
 					contentStack.peek().set("@" + key, unmarshalled);
@@ -465,6 +486,7 @@ public class XMLParserSAX extends DefaultHandler {
 			if (trimContent && content != null) {
 				content = content.trim();
 			}
+			Value<CollectionFormat> collectionFormatProperty = elementStack.peek().getProperty(CollectionFormatProperty.getInstance());
 			Object convertedContent = null;
 			if (content != null && content.length() > 0) {
 				Type typeToCheck = elementStack.peek().getType();
@@ -492,26 +514,40 @@ public class XMLParserSAX extends DefaultHandler {
 					}
 				}
 				else {
-					try {
-						convertedContent = ((Unmarshallable<?>) typeToCheck).unmarshal(content, elementStack.peek().getProperties());
+					if (elementStack.peek().getType().isList(elementStack.peek().getProperties()) && collectionFormatProperty != null) {
+						List<Object> parts = new ArrayList<Object>();
+						for (String part : content.split("\\Q" + collectionFormatProperty.getValue().getCharacter() + "\\E")) {
+							parts.add(((Unmarshallable<?>) elementStack.peek().getType()).unmarshal(part, elementStack.peek().getProperties()));
+						}
+						convertedContent = parts;
 					}
-					catch (RuntimeException e) {
-						throw new SAXException("Can not parse field '" + localName + "'", e);
+					else {
+						try {
+							convertedContent = ((Unmarshallable<?>) typeToCheck).unmarshal(content, elementStack.peek().getProperties());
+						}
+						catch (RuntimeException e) {
+							throw new SAXException("Can not parse field '" + localName + "'", e);
+						}
 					}
 				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
-				Object list = contentStack.peek().get(localName);
-				if (index == null) {
-					if (list != null) {
-						CollectionHandlerProvider provider = collectionHandler.getHandler(list.getClass());
-						index = provider.getAsCollection(list).size();
-					}
-					else {
-						index = 0;
-					}
+				if (collectionFormatProperty != null) {
+					contentStack.peek().set(localName, convertedContent);
 				}
-				contentStack.peek().set(localName + "[" + index + "]", convertedContent);
+				else {
+					Object list = contentStack.peek().get(localName);
+					if (index == null) {
+						if (list != null) {
+							CollectionHandlerProvider provider = collectionHandler.getHandler(list.getClass());
+							index = provider.getAsCollection(list).size();
+						}
+						else {
+							index = 0;
+						}
+					}
+					contentStack.peek().set(localName + "[" + index + "]", convertedContent);
+				}
 			}
 			else if (isAny) {
 				contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", convertedContent);
