@@ -355,6 +355,11 @@ public class XMLMarshaller {
 					for (Element<?> child : TypeUtils.getAllChildren(complexType)) {
 						if (child instanceof Attribute || child.getName().startsWith("@")) {
 							Object value = complexContent.get(child.getName());
+							// depending on the complex content used, attributes may reside in the @ annotated field
+							// e.g. we often wrap xml schema (that uses Attribute at definition time without a @) in a structure instance (that uses @ at runtime)
+							if (value == null && !child.getName().startsWith("@")) {
+								value = complexContent.get("@" + child.getName());
+							}
 							if (value != null) {
 								SimpleType<?> type = (SimpleType<?>) child.getType();
 								if (!(type instanceof Marshallable)) {
