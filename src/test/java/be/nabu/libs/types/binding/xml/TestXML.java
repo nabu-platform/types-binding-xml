@@ -20,6 +20,38 @@ import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanType;
 
 public class TestXML extends TestCase {
+
+	public void testSchemaImport() throws IOException, ParseException {
+		InputStream input = TestXML.class.getClassLoader().getResourceAsStream("testSchemaImport.xml");
+		XMLBinding binding = new XMLBinding(new BeanType<Note>(Note.class), Charset.forName("UTF-8"));
+		Note note = TypeUtils.getAsBean(binding.unmarshal(input, new Window[0]), Note.class);
+		assertEquals("you", note.getTo());
+	}
+	
+	public void testSchemaImportWindow() throws IOException, ParseException {
+		InputStream input = TestXML.class.getClassLoader().getResourceAsStream("testSchemaImport.xml");
+		XMLBinding binding = new XMLBinding(new BeanType<Note>(Note.class), Charset.forName("UTF-8"));
+		Note note = TypeUtils.getAsBean(binding.unmarshal(input, new Window[] {
+			new Window("companies", 3, 3)
+		}), Note.class);
+		assertEquals("you", note.getTo());
+	}
+	
+	public void testDTD() throws IOException, ParseException {
+		InputStream input = TestXML.class.getClassLoader().getResourceAsStream("testDTD.xml");
+		XMLBinding binding = new XMLBinding(new BeanType<Note>(Note.class), Charset.forName("UTF-8"));
+		Note note = TypeUtils.getAsBean(binding.unmarshal(input, new Window[0]), Note.class);
+		assertEquals("you", note.getTo());
+	}
+	
+	public void testDTDWindow() throws IOException, ParseException {
+		InputStream input = TestXML.class.getClassLoader().getResourceAsStream("testDTD.xml");
+		XMLBinding binding = new XMLBinding(new BeanType<Note>(Note.class), Charset.forName("UTF-8"));
+		Note note = TypeUtils.getAsBean(binding.unmarshal(input, new Window[] {
+			new Window("companies", 3, 3)
+		}), Note.class);
+		assertEquals("you", note.getTo());
+	}
 	
 	public void testXml() throws IOException, ParserConfigurationException, SAXException, ParseException {
 		InputStream input = TestXML.class.getClassLoader().getResourceAsStream("test.xml");

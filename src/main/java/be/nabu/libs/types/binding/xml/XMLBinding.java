@@ -1,5 +1,6 @@
 package be.nabu.libs.types.binding.xml;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -9,11 +10,13 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLResolver;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import be.nabu.libs.property.api.Value;
 import be.nabu.libs.resources.api.ReadableResource;
@@ -81,8 +84,31 @@ public class XMLBinding extends BaseTypeBinding {
 		if (windows.length == 0) {
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			factory.setNamespaceAware(true);
+			factory.setValidating(false);
 			try {
 				SAXParser parser = factory.newSAXParser();
+				
+				// if you disable it like this and there is actually a dtd with a remote reference
+				// it will _not_ ignore the dtd but instead fail because it is not allowed to access the necessary files...
+//				parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "false");
+//				parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "false");
+//				parser.setProperty(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "false");
+				
+				XMLReader xmlReader = parser.getXMLReader();
+				
+				// disable everything with dtd and loading external files for it...
+				xmlReader.setFeature("http://xml.org/sax/features/validation", false);
+				xmlReader.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+				xmlReader.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+				xmlReader.setFeature("http://xml.org/sax/features/external-general-entities", false);
+				xmlReader.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+				xmlReader.setFeature("http://xml.org/sax/features/use-entity-resolver2", false);   
+				xmlReader.setFeature("http://xml.org/sax/features/resolve-dtd-uris", false);
+				xmlReader.setFeature("http://apache.org/xml/features/validation/dynamic", false);
+				xmlReader.setFeature("http://apache.org/xml/features/validation/schema/augment-psvi", false);
+				// this one fails, so leaving it out
+//				reader2.setFeature("http://apache.org/xml/features/validation/unparsed-entity-checking", false);
+				
 				parser.parse(new InputSource(reader), saxHandler);
 				return saxHandler.getInstance();
 			}
@@ -96,6 +122,17 @@ public class XMLBinding extends BaseTypeBinding {
 		// when using windows, we need the stax parser for the character offsets
 		else {
 			XMLInputFactory factory = XMLInputFactory.newFactory();
+			// simply don't return anything seems to work for stax, so let's leave it at that for now
+			factory.setXMLResolver(new XMLResolver() {
+				@Override
+				public Object resolveEntity(String publicID, String systemID, String baseURI, String namespace) throws XMLStreamException {
+					return new ByteArrayInputStream(new byte[0]);
+				}
+			});
+//			factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+//			factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "false");
+//			factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "false");
+//			factory.setProperty(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "false");
 			try {
 				// set up the stax parser
 				XMLParserStAX xmlParser = new XMLParserStAX(saxHandler);
