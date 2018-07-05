@@ -6,6 +6,7 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -532,11 +533,20 @@ public class XMLParserSAX extends DefaultHandler {
 				}
 			}
 			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
+				Object list = contentStack.peek().get(localName);
 				if (collectionFormatProperty != null) {
-					contentStack.peek().set(localName, convertedContent);
+					// we want to be lenient and allow a combination of classic multi-tag lists and collection formatted lists
+					if (list == null) {
+						contentStack.peek().set(localName, convertedContent);
+					}
+					else if (list instanceof Collection) {
+						((Collection) list).addAll((Collection) convertedContent);
+					}
+					else {
+						throw new IllegalArgumentException("You have multiple instances of element '" + localName + "' which has a collection format that can not be merged because the list is of type: " + list.getClass());
+					}
 				}
 				else {
-					Object list = contentStack.peek().get(localName);
 					if (index == null) {
 						if (list != null) {
 							CollectionHandlerProvider provider = collectionHandler.getHandler(list.getClass());
