@@ -37,6 +37,7 @@ import be.nabu.libs.types.base.DynamicElement;
 import be.nabu.libs.types.binding.BindingUtils;
 import be.nabu.libs.types.binding.api.Window;
 import be.nabu.libs.types.binding.api.WindowedList;
+import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanType;
 import be.nabu.libs.types.properties.CollectionFormatProperty;
 import be.nabu.libs.types.properties.NameProperty;
@@ -77,6 +78,8 @@ public class XMLParserSAX extends DefaultHandler {
 	private Charset charset = Charset.forName("UTF-8");
 	
 	private boolean forceRootTypeMatch = true;
+	
+	private boolean unwrapBeans = false;
 	
 	private ReadableResource resource;
 	
@@ -625,19 +628,19 @@ public class XMLParserSAX extends DefaultHandler {
 					windowedList.setOffset((Integer) index, windowOffsets.get(activeWindow));
 					
 					if ((Integer) index < activeWindow.getSize()) {
-						contentStack.peek().set(localName + "[" + index + "]", currentInstance);
+						contentStack.peek().set(localName + "[" + index + "]", unwrapIfNecessary(currentInstance));
 					}
 				}					
 				else {
-					contentStack.peek().set(localName + "[" + index + "]", currentInstance);
+					contentStack.peek().set(localName + "[" + index + "]", unwrapIfNecessary(currentInstance));
 				}
 			}
 			else if (contentStack.size() >= 1) {
 				if (isAny) {
-					contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", currentInstance);	
+					contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", unwrapIfNecessary(currentInstance));	
 				}
 				else {
-					contentStack.peek().set(localName, currentInstance);
+					contentStack.peek().set(localName, unwrapIfNecessary(currentInstance));
 				}
 			}
 		}
@@ -645,6 +648,10 @@ public class XMLParserSAX extends DefaultHandler {
 		isNil = false;
 		elementStack.pop();
 		this.content = null;
+	}
+	
+	private Object unwrapIfNecessary(ComplexContent content) {
+		return unwrapBeans && content instanceof BeanInstance ? ((BeanInstance<?>) content).getUnwrapped() : content;
 	}
 	
 	public boolean isDone() {
@@ -737,6 +744,14 @@ public class XMLParserSAX extends DefaultHandler {
 
 	public void setForceRootTypeMatch(boolean forceRootTypeMatch) {
 		this.forceRootTypeMatch = forceRootTypeMatch;
+	}
+
+	public boolean isUnwrapBeans() {
+		return unwrapBeans;
+	}
+
+	public void setUnwrapBeans(boolean unwrapBeans) {
+		this.unwrapBeans = unwrapBeans;
 	}
 	
 }

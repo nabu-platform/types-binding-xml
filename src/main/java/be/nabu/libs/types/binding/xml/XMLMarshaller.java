@@ -329,7 +329,8 @@ public class XMLMarshaller {
 					typeInstance = new BaseTypeInstance(wrap, typeInstance.getProperties());
 				}
 				else {
-					typeInstance = new BaseTypeInstance(ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content).getType(), typeInstance.getProperties());
+					ComplexContent complexContent = content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content); 
+					typeInstance = new BaseTypeInstance(complexContent.getType(), typeInstance.getProperties());
 				}
 			}
 
