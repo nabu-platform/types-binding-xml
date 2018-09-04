@@ -494,6 +494,9 @@ public class XMLParserSAX extends DefaultHandler {
 			Object convertedContent = null;
 			if (content != null && content.length() > 0) {
 				Type typeToCheck = elementStack.peek().getType();
+				if (isComplexType && isSimpleType && typeToCheck instanceof ComplexType) {
+					typeToCheck = ((ComplexType) typeToCheck).get(ComplexType.SIMPLE_TYPE_VALUE) == null ? null : ((ComplexType) typeToCheck).get(ComplexType.SIMPLE_TYPE_VALUE).getType();
+				}
 				while (typeToCheck != null && !(typeToCheck instanceof Unmarshallable)) {
 					typeToCheck = typeToCheck.getSuperType();
 				}
@@ -535,7 +538,19 @@ public class XMLParserSAX extends DefaultHandler {
 					}
 				}
 			}
-			if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
+			// it is a simple complex type, we want the textual content to be set in the value field
+			if (isComplexType) {
+				// set the converted content as value
+				contentStack.peek().set(ComplexType.SIMPLE_TYPE_VALUE, convertedContent);
+				
+				// pop some stacks
+				ComplexContent pop = contentStack.pop();
+				pathStack.pop();
+				
+				// set the actual content as value in the parent
+				contentStack.peek().set(elementStack.peek().getName(), pop);
+			}
+			else if (elementStack.peek().getType().isList(elementStack.peek().getProperties())) {
 				Object list = contentStack.peek().get(localName);
 				if (collectionFormatProperty != null) {
 					// we want to be lenient and allow a combination of classic multi-tag lists and collection formatted lists
@@ -570,11 +585,6 @@ public class XMLParserSAX extends DefaultHandler {
 			}
 			// reset simple type so the next "stop" doesn't think it's a simple type
 			isSimpleType = false;
-			// if it is a simple complex type, pop some stacks
-			if (isComplexType) {
-				contentStack.pop();
-				pathStack.pop();
-			}
 		}
 		// this is the end of a complex type
 		else {

@@ -389,6 +389,8 @@ public class XMLMarshaller {
 						}
 					}
 				}
+				// if we have a simple complex type and it has content, make sure we marshal it
+				hasContent |= complexType instanceof SimpleType && complexContent.get(ComplexType.SIMPLE_TYPE_VALUE) != null;
 				if (hasContent) {
 					writer.append(">");
 					// it only has the attributes and a value element which is filled in (hasContent is true), marshal and set
