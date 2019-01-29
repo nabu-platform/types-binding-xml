@@ -117,6 +117,12 @@ public class XMLMarshaller {
 	private boolean prettyPrint = true;
 	
 	/**
+	 * In pretty print mode, should multiline the attributes?
+	 * Can be useful when performing line diffs
+	 */
+	private boolean multilineAttributes = false;
+	
+	/**
 	 * Whether or not individual elements can override the qualified setting
 	 */
 	private boolean allowQualifiedOverride = false;
@@ -319,7 +325,16 @@ public class XMLMarshaller {
 			
 			if (additionalAttributes != null) {
 				for (String key : additionalAttributes.keySet()) {
-					writer.append(" ").append(key).append("=\"").append(encodeAttribute(additionalAttributes.get(key))).append("\"");
+					if (prettyPrint && multilineAttributes) {
+						writer.append("\n");
+						for (int i = 0; i < depth + 2; i++) {
+							writer.append("\t");
+						}
+					}
+					else {
+						writer.append(" ");
+					}
+					writer.append(key).append("=\"").append(encodeAttribute(additionalAttributes.get(key))).append("\"");
 				}
 			}
 			
@@ -367,7 +382,15 @@ public class XMLMarshaller {
 									throw new MarshalException("The attribute " + type.getName() + " can not be marshalled");
 								}
 								String marshalledValue = ((Marshallable) type).marshal(value, child.getProperties());
-								writer.append(" ");
+								if (prettyPrint && multilineAttributes) {
+									writer.append("\n");
+									for (int i = 0; i < depth + 2; i++) {
+										writer.append("\t");
+									}
+								}
+								else {
+									writer.append(" ");
+								}
 								if (namespaceAware && child.getNamespace() != null && attributeQualified) {
 									if (!namespaces.containsKey(child.getNamespace())) {
 										namespaces.put(child.getNamespace(), prefix + namespaceCounter++);
@@ -636,6 +659,14 @@ public class XMLMarshaller {
 
 	public void setPrettyPrint(boolean prettyPrint) {
 		this.prettyPrint = prettyPrint;
+	}
+
+	public boolean isMultilineAttributes() {
+		return multilineAttributes;
+	}
+
+	public void setMultilineAttributes(boolean multilineAttributes) {
+		this.multilineAttributes = multilineAttributes;
 	}
 
 }
