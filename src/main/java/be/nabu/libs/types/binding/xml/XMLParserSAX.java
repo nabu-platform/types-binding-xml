@@ -21,6 +21,7 @@ import be.nabu.libs.resources.api.ReadableResource;
 import be.nabu.libs.types.BaseTypeInstance;
 import be.nabu.libs.types.CollectionHandlerFactory;
 import be.nabu.libs.types.DefinedTypeResolverFactory;
+import be.nabu.libs.types.SimpleTypeWrapperFactory;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.CollectionHandler;
 import be.nabu.libs.types.api.CollectionHandlerProvider;
@@ -334,8 +335,8 @@ public class XMLParserSAX extends DefaultHandler {
 			Type intendedType = elementStack.peek() == null ? type : elementStack.peek().getType();
 			if (contentStack.isEmpty() && forceRootTypeMatch && !element.getName().equals(localName))
 				throw new SAXException("The root tag " + localName + " does not match the expected name: " + element.getName());
+			boolean allowAll = intendedType instanceof BeanType && ((BeanType) intendedType).getBeanClass().equals(Object.class);
 			if (actualType != null) {
-				boolean allowAll = intendedType instanceof BeanType && ((BeanType) intendedType).getBeanClass().equals(Object.class);
 				// intended type can be null if no complex type is given
 				if (!allowAll && intendedType != null && !TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)) && TypeUtils.getUpcastPath(actualType, intendedType).isEmpty()) {
 					if (!allowSuperTypes || (!TypeUtils.isSubset(new BaseTypeInstance(intendedType), new BaseTypeInstance(actualType)) && TypeUtils.getUpcastPath(intendedType, actualType).isEmpty())) {
@@ -347,6 +348,11 @@ public class XMLParserSAX extends DefaultHandler {
 				}
 				else
 					intendedType = actualType;
+			}
+			// if we have no actual type but we do have an Object.class level thing, we assume string
+			// we can't actually add children to the object anyway and the content data _is_ a string
+			else if (allowAll) {
+				intendedType = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(String.class);
 			}
 			if (intendedType instanceof ComplexType) {
 				isComplexType = true;
@@ -515,6 +521,10 @@ public class XMLParserSAX extends DefaultHandler {
 						catch (IOException e) {
 							throw new RuntimeException(e);
 						}
+					}
+					// we just leave it as a string, check line 352 for reason why
+					else if (elementStack.peek().getType() instanceof BeanType && ((BeanType) elementStack.peek().getType()).getBeanClass().equals(Object.class) && isSimpleType && !isComplexType) {
+						convertedContent = content;
 					}
 					else {
 						throw new SAXException("The element '" + localName + "' in " + getCurrentPath() + " can not be unmarshalled because it is of type: " + elementStack.peek().getType());
