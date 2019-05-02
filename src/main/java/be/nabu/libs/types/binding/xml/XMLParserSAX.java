@@ -27,6 +27,7 @@ import be.nabu.libs.types.api.CollectionHandler;
 import be.nabu.libs.types.api.CollectionHandlerProvider;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexType;
+import be.nabu.libs.types.api.DefinedType;
 import be.nabu.libs.types.api.Element;
 import be.nabu.libs.types.api.SimpleType;
 import be.nabu.libs.types.api.Type;
@@ -377,7 +378,7 @@ public class XMLParserSAX extends DefaultHandler {
 							continue;
 						}
 						else {
-							throw new SAXException("The attribute " + key + " is not supported at this location");
+							throw new SAXException("The attribute " + key + " is not supported at this location in " + (complexType instanceof DefinedType ? ((DefinedType) complexType).getId() : complexType));
 						}
 					}
 					Object unmarshalled;
