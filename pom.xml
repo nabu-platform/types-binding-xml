@@ -42,10 +42,9 @@
 			remove the stax 1.0.2 reference in the build path it doesn't matter if you 
 			use lgpl or asl version of woodstox -->
 		<dependency>
-			<groupId>org.codehaus.woodstox</groupId>
-			<artifactId>woodstox-core-lgpl</artifactId>
-			<version>4.1.1</version>
-			<scope>provided</scope>
+			<groupId>com.fasterxml.woodstox</groupId>
+			<artifactId>woodstox-core</artifactId>
+			<version>6.0.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>javax.xml.stream</groupId>
