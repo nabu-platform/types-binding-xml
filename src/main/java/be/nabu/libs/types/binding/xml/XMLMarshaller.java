@@ -123,6 +123,11 @@ public class XMLMarshaller {
 	private boolean multilineAttributes = false;
 	
 	/**
+	 * Whether we want to allow multiline in attributes
+	 * If so, we need to encode it, otherwise it will normalized to a space when parsing
+	 */
+	private boolean multilineInAttributes = false;
+	/**
 	 * Whether or not individual elements can override the qualified setting
 	 */
 	private boolean allowQualifiedOverride = false;
@@ -528,7 +533,11 @@ public class XMLMarshaller {
 	}
 	
 	protected String encodeAttribute(String content) {
-		return encode(content).replace("\"", "&quot;");
+		String replace = encode(content).replace("\"", "&quot;");
+		if (multilineInAttributes) {
+			replace = replace.replace("\n", "&#10;");
+		}
+		return replace;
 	}
 	
 	protected String encode(String content) {
@@ -667,6 +676,14 @@ public class XMLMarshaller {
 
 	public void setMultilineAttributes(boolean multilineAttributes) {
 		this.multilineAttributes = multilineAttributes;
+	}
+
+	public boolean isMultilineInAttributes() {
+		return multilineInAttributes;
+	}
+
+	public void setMultilineInAttributes(boolean multilineInAttributes) {
+		this.multilineInAttributes = multilineInAttributes;
 	}
 
 }
