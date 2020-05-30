@@ -152,6 +152,12 @@ public class XMLMarshaller {
 	 * Used to generate new prefixes
 	 */
 	private int namespaceCounter = 1;
+	/**
+	 * We only check if the $value field is available to determine a complex type is also a simple type
+	 * This means you can never use a field like that as an actual child unless you turn this off
+	 * At that point the complex type actually has to be instanceof simple type
+	 */
+	private boolean validateSimpleComplexByValue = true;
 	
 	public XMLMarshaller(TypeInstance typeInstance) {
 		this.typeInstance = typeInstance;
@@ -205,24 +211,27 @@ public class XMLMarshaller {
 		boolean newElementQualified = elementQualified;
 		// this will allow you to override the qualified-ness of elements but it only goes from "qualified" to "unqualified", it does not (currently) allow from "unqualified" to "qualified"
 		if (allowQualifiedOverride) {
-			if (attributeQualified) { 
-				Value<Boolean> property = typeInstance.getProperty(AttributeQualifiedDefaultProperty.getInstance());
-				if (property != null) {
-					newAttributeQualified = property.getValue();
+//			if (attributeQualified) { 
+				Value<Boolean> attributeQualifiedProperty = typeInstance.getProperty(AttributeQualifiedDefaultProperty.getInstance());
+				if (attributeQualifiedProperty != null) {
+					newAttributeQualified = attributeQualifiedProperty.getValue();
+					// attributes are considered children, we must change this immediately
+					attributeQualified = newAttributeQualified;
 				}
-			}
-			if (elementQualified) {
-				Value<Boolean> property = typeInstance.getProperty(ElementQualifiedDefaultProperty.getInstance());
-				if (property != null) {
-					newElementQualified = property.getValue();
+//			}
+//			if (elementQualified) {
+				Value<Boolean> elementQualifiedProperty = typeInstance.getProperty(ElementQualifiedDefaultProperty.getInstance());
+				if (elementQualifiedProperty != null) {
+					newElementQualified = elementQualifiedProperty.getValue();
 				}
-			}
+//			}
 		}
 		
 		String elementName = ValueUtils.getValue(NameProperty.getInstance(), typeInstance.getProperties());
 		if (elementName == null) {
 			elementName = typeInstance.getType().getName(typeInstance.getProperties());
 		}
+
 		if (elementName.equals(NameProperty.ANY)) {
 			// for an any element with no content > write nothing
 			// otherwise it MUST be a collection
@@ -418,11 +427,11 @@ public class XMLMarshaller {
 					}
 				}
 				// if we have a simple complex type and it has content, make sure we marshal it
-				hasContent |= complexType instanceof SimpleType && complexContent.get(ComplexType.SIMPLE_TYPE_VALUE) != null;
+				hasContent |= (validateSimpleComplexByValue || complexType instanceof SimpleType) && complexContent != null && complexType.get(ComplexType.SIMPLE_TYPE_VALUE) != null && complexContent.get(ComplexType.SIMPLE_TYPE_VALUE) != null;
 				if (hasContent) {
 					writer.append(">");
 					// it only has the attributes and a value element which is filled in (hasContent is true), marshal and set
-					if (complexType instanceof SimpleType) {
+					if (complexType instanceof SimpleType || (validateSimpleComplexByValue && complexType.get(ComplexType.SIMPLE_TYPE_VALUE) != null)) {
 						Element<?> valueElement = complexType.get(ComplexType.SIMPLE_TYPE_VALUE);
 						if (!(valueElement.getType() instanceof Marshallable))
 							throw new MarshalException("The simple value for element " + valueElement.getName() + " can not be marshalled");

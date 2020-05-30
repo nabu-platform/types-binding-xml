@@ -589,7 +589,9 @@ public class XMLParserSAX extends DefaultHandler {
 				}
 			}
 			else if (isAny) {
+				// the indexed access it not always appreciated... but until we resolve the issue in the structure, we leave the original code
 				contentStack.peek().set(NameProperty.ANY + "[" + localName + "]", convertedContent);
+				//contentStack.peek().set(NameProperty.ANY + "/" + localName, convertedContent);
 			}
 			else {
 				contentStack.peek().set(localName, convertedContent);
