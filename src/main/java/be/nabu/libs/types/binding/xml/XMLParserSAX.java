@@ -437,7 +437,7 @@ public class XMLParserSAX extends DefaultHandler {
 				isComplexType = false;
 			}
 			else
-				throw new SAXException("Expecting either a complex or a simple type but " + intendedType + " is neither");
+				throw new SAXException("Expecting either a complex or a simple type but " + intendedType + " is neither for element: " + element.getName());
 		}
 		// reset content if we start a new element as well, otherwise we get trailing content between last closing tag and this opening tag (mostly whitespace...)
 		this.content = null;

@@ -45,6 +45,7 @@ import be.nabu.libs.types.properties.MinOccursProperty;
 import be.nabu.libs.types.properties.NameProperty;
 import be.nabu.libs.types.properties.NamespaceProperty;
 import be.nabu.libs.types.properties.NillableProperty;
+import be.nabu.libs.types.properties.QualifiedProperty;
 import be.nabu.libs.types.resultset.ResultSetWithType;
 import be.nabu.libs.types.resultset.ResultSetWithTypeCollectionHandler;
 import be.nabu.utils.codec.TranscoderUtils;
@@ -169,7 +170,7 @@ public class XMLMarshaller {
 	
 	public void marshal(Writer writer, ComplexContent content) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(writer);
-		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified(), null, false);
+		marshal(bufferedWriter, content, typeInstance, namespaces, true, null, 0, isAttributeQualified(), isElementQualified(), null, false, false);
 		bufferedWriter.flush();
 	}
 	
@@ -203,28 +204,33 @@ public class XMLMarshaller {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified, String parentNamespace, boolean isAny) throws IOException {
+	private void marshal(Writer writer, Object content, TypeInstance typeInstance, Map<String, String> namespaces, boolean isRoot, Map<String, String> additionalAttributes, int depth, boolean attributeQualified, boolean elementQualified, String parentNamespace, boolean isAny, boolean isFormQualified) throws IOException {
 		// wrap around the initial map so it does not modify the original map (basically you don't want the newly defined namespaces to exist outside of their scope)
 		namespaces = new HashMap<String, String>(namespaces);
 		
 		boolean newAttributeQualified = attributeQualified;
 		boolean newElementQualified = elementQualified;
-		// this will allow you to override the qualified-ness of elements but it only goes from "qualified" to "unqualified", it does not (currently) allow from "unqualified" to "qualified"
 		if (allowQualifiedOverride) {
-//			if (attributeQualified) { 
-				Value<Boolean> attributeQualifiedProperty = typeInstance.getProperty(AttributeQualifiedDefaultProperty.getInstance());
-				if (attributeQualifiedProperty != null) {
-					newAttributeQualified = attributeQualifiedProperty.getValue();
-					// attributes are considered children, we must change this immediately
-					attributeQualified = newAttributeQualified;
-				}
-//			}
-//			if (elementQualified) {
+			// first check if we have a QualifiedProperty setting, this is directly set on the element (through use of the 'form' attributes in xsd)
+			Value<Boolean> qualifiedProperty = typeInstance.getProperty(QualifiedProperty.getInstance());
+			// if we have a specific setting, that wins
+			if (qualifiedProperty != null && qualifiedProperty.getValue() != null) {
+				newElementQualified = qualifiedProperty.getValue();
+				isFormQualified = true;
+			}
+			Value<Boolean> attributeQualifiedProperty = typeInstance.getProperty(AttributeQualifiedDefaultProperty.getInstance());
+			if (attributeQualifiedProperty != null) {
+				newAttributeQualified = attributeQualifiedProperty.getValue();
+				// attributes are considered children, we must change this immediately
+				attributeQualified = newAttributeQualified;
+			}
+			// if we did not find an explicit qualified indicator (so far), use the default one
+			if (!isFormQualified) {
 				Value<Boolean> elementQualifiedProperty = typeInstance.getProperty(ElementQualifiedDefaultProperty.getInstance());
 				if (elementQualifiedProperty != null) {
 					newElementQualified = elementQualifiedProperty.getValue();
 				}
-//			}
+			}
 		}
 		
 		String elementName = ValueUtils.getValue(NameProperty.getInstance(), typeInstance.getProperties());
@@ -245,7 +251,7 @@ public class XMLMarshaller {
 						type = new BeanType<Object>(Object.class);
 					}
 					DynamicElement dynamicType = new DynamicElement((Element<?>) typeInstance, type, index.toString(), typeInstance.getProperties());
-					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified, parentNamespace, true);
+					marshal(writer, child, dynamicType, namespaces, isRoot, null, depth, newAttributeQualified, newElementQualified, parentNamespace, true, isFormQualified);
 				}
 			}
 		}
@@ -448,15 +454,15 @@ public class XMLMarshaller {
 								if (value != null || ValueUtils.getValue(MinOccursProperty.getInstance(), child.getProperties()) > 0 || forceOptionalEmptyFields) {
 									if (value instanceof Collection) {
 										for (Object childValue : (Collection) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);	
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);	
 									}
 									else if (value instanceof Object[]) {
 										for (Object childValue : (Object[]) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);
 									}
 									else if (value instanceof Iterable) {
 										for (Object childValue : (Iterable) value)
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);
 									}
 									// xsd:any has special handling, don't capture it in the map step
 									// if the map has been interpreted into a type (e.g. through map type) so it is not exposed as a list, don't use the collection approach
@@ -464,18 +470,18 @@ public class XMLMarshaller {
 										for (Object key : ((Map) value).keySet()) {
 											Map<String, String> attributes = new HashMap<String, String>();
 											attributes.put("collectionIndex", key.toString());
-											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+											marshal(writer, ((Map) value).get(key), child, namespaces, false, attributes, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);
 										}
 									}
 									// should really refactor this to use the generic collection handling but this is _very_ old code
 									else if (value instanceof ResultSetWithType) {
 										Iterable<?> iterable = new ResultSetWithTypeCollectionHandler().getAsIterable((ResultSetWithType) value);
 										for (Object childValue : iterable) {
-											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+											marshal(writer, childValue, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);
 										}
 									}
 									else {
-										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false);
+										marshal(writer, value, child, namespaces, false, null, depth + 1, newAttributeQualified, newElementQualified, elementNamespace, false, isFormQualified);
 									}
 								}
 							}
