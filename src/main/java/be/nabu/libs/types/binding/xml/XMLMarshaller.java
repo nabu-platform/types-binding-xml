@@ -237,6 +237,10 @@ public class XMLMarshaller {
 		if (elementName == null) {
 			elementName = typeInstance.getType().getName(typeInstance.getProperties());
 		}
+		
+		if (elementName == null) {
+			throw new IllegalArgumentException("Could not find element name for: " + typeInstance);
+		}
 
 		if (elementName.equals(NameProperty.ANY)) {
 			// for an any element with no content > write nothing
@@ -357,7 +361,7 @@ public class XMLMarshaller {
 					writer.append(key).append("=\"").append(encodeAttribute(additionalAttributes.get(key))).append("\"");
 				}
 			}
-			
+
 			if (content != null && typeInstance.getType() instanceof BeanType && ((BeanType) typeInstance.getType()).getBeanClass().equals(Object.class)) {
 				DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(content.getClass());
 				if (wrap != null) {
@@ -367,6 +371,8 @@ public class XMLMarshaller {
 					ComplexContent complexContent = content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content); 
 					typeInstance = new BaseTypeInstance(complexContent.getType(), typeInstance.getProperties());
 				}
+				// if we have a java lang object, we want to inject the xsi:type so we can properly undo it at the other end
+				isAny = true;
 			}
 
 			if (typeInstance.getType() instanceof ComplexType) {
