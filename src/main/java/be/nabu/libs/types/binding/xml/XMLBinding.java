@@ -53,7 +53,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true, unwrapBeans, multilineAttributes, multilineInAttributes;
+	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true, unwrapBeans, multilineAttributes, multilineInAttributes, allowXSI = true;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -157,6 +157,7 @@ public class XMLBinding extends BaseTypeBinding {
 		xmlMarshaller.setPrettyPrint(prettyPrint);
 		xmlMarshaller.setMultilineAttributes(multilineAttributes);
 		xmlMarshaller.setMultilineInAttributes(multilineInAttributes);
+		xmlMarshaller.setAllowXSI(allowXSI);
 		xmlMarshaller.marshal(output, charset, content);
 	}
 
@@ -238,6 +239,14 @@ public class XMLBinding extends BaseTypeBinding {
 
 	public void setMultilineInAttributes(boolean multilineInAttributes) {
 		this.multilineInAttributes = multilineInAttributes;
+	}
+
+	public boolean isAllowXSI() {
+		return allowXSI;
+	}
+
+	public void setAllowXSI(boolean allowXSI) {
+		this.allowXSI = allowXSI;
 	}
 
 }
