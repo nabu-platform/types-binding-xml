@@ -83,6 +83,9 @@ public class XMLParserSAX extends DefaultHandler {
 	
 	private boolean unwrapBeans = false;
 	
+	// can the root object itself be null? (with xsi:nil)
+	private boolean allowRootNull = true;
+	
 	private ReadableResource resource;
 	
 	private Map<String, String> namespaces = new HashMap<String, String>();
@@ -362,7 +365,9 @@ public class XMLParserSAX extends DefaultHandler {
 				
 				ComplexType complexType = (ComplexType) intendedType;
 				// note: it is possible (per the spec) to have other attributes even is xsi:nil is set. you simply can not have content (text or elements)
-				contentStack.push(isNil && elementAttributes.isEmpty() ? null : complexType.newInstance());
+				// @2024-05-28: the actual root content may need to be present in some cases even if it has no attributes etc
+				// we check this by checking if root nulls are allowed OR there is already a parent in the content stack
+				contentStack.push(isNil && elementAttributes.isEmpty() && (allowRootNull || !contentStack.isEmpty()) ? null : complexType.newInstance());
 				// set it as the main instance
 				if (contentStack.size() == 1)
 					instance = contentStack.peek();
@@ -775,6 +780,14 @@ public class XMLParserSAX extends DefaultHandler {
 
 	public void setUnwrapBeans(boolean unwrapBeans) {
 		this.unwrapBeans = unwrapBeans;
+	}
+
+	public boolean isAllowRootNull() {
+		return allowRootNull;
+	}
+
+	public void setAllowRootNull(boolean allowRootNull) {
+		this.allowRootNull = allowRootNull;
 	}
 	
 }

@@ -53,7 +53,7 @@ public class XMLBinding extends BaseTypeBinding {
 	
 	private Charset charset;
 	private ComplexType type;
-	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true, unwrapBeans, multilineAttributes, multilineInAttributes, allowXSI = true;
+	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true, unwrapBeans, multilineAttributes, multilineInAttributes, allowXSI = true, allowRootNull = true;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -73,6 +73,7 @@ public class XMLBinding extends BaseTypeBinding {
 		saxHandler.setAllowSuperTypes(allowSuperTypes);
 		saxHandler.setForceRootTypeMatch(forceRootTypeMatch);
 		saxHandler.setUnwrapBeans(unwrapBeans);
+		saxHandler.setAllowRootNull(allowRootNull);
 		return unmarshal(saxHandler, resource, windows, values);
 	}
 
@@ -247,6 +248,22 @@ public class XMLBinding extends BaseTypeBinding {
 
 	public void setAllowXSI(boolean allowXSI) {
 		this.allowXSI = allowXSI;
+	}
+
+	public boolean isAllowRootNull() {
+		return allowRootNull;
+	}
+
+	public void setAllowRootNull(boolean allowRootNull) {
+		this.allowRootNull = allowRootNull;
+	}
+
+	public Charset getCharset() {
+		return charset;
+	}
+
+	public ComplexType getType() {
+		return type;
 	}
 
 }

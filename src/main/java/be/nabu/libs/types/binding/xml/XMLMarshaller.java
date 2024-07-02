@@ -562,7 +562,15 @@ public class XMLMarshaller {
 	}
 	
 	protected String encode(String content) {
-		return content.replace("&", "&amp;").replace(">", "&gt;").replace("<", "&lt;");
+		return content
+			.replace("&", "&amp;")
+			.replace(">", "&gt;")
+			.replace("<", "&lt;")
+			.replace("\u000b", "&#11;")
+			.replace("\u000c", "&#12;")
+			.replace("\ufffe", "")
+			.replace("\uffff", "")
+			.replace("\u0000", "");
 	}
 	
 	public boolean isAllowXSI() {
