@@ -88,7 +88,8 @@ public class TestXML extends TestCase {
 			assertEquals("Nabu HQ", result.getAddress());
 			assertEquals("BE666-66-66", result.getBillingNumber());
 			assertEquals(24, result.getEmployees().size());
-			assertEquals("John1", result.getEmployees().get(1).getFirstName());
+			// testing tab parsing as well!
+			assertEquals("John1	", result.getEmployees().get(1).getFirstName());
 			// do multiple checks because of the window we set, these are in different batches
 			assertEquals(new Integer(31), result.getEmployees().get(0).getAge());
 			assertEquals(new Integer(57), result.getEmployees().get(1).getAge());

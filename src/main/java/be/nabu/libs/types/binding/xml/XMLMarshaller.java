@@ -583,8 +583,12 @@ public class XMLMarshaller {
 			.replace("&", "&amp;")
 			.replace(">", "&gt;")
 			.replace("<", "&lt;")
-			.replace("\u000b", "&#11;")
-			.replace("\u000c", "&#12;")
+			// @2025-01-31: vertical tabs should not be needed anymore and the &#11; syntax can not be parsed anyway so if we need to reintroduce them we would need to look up how to encode them properly 
+			//.replace("\u000b", "&#11;")
+			// @2025-01-31: same for "form feed", did not test it but presume that it also fails parsing
+			//.replace("\u000c", "&#12;")
+			.replace("\u000b", "")
+			.replace("\u000c", "")
 			.replace("\ufffe", "")
 			.replace("\uffff", "")
 			.replace("\u0000", "");
