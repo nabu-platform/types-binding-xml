@@ -360,7 +360,12 @@ public class XMLParserSAX extends DefaultHandler {
 			if (actualType != null) {
 				// intended type can be null if no complex type is given
 				if (!allowAll && intendedType != null && !TypeUtils.isSameType(actualType, intendedType) && !TypeUtils.isSubset(new BaseTypeInstance(actualType), new BaseTypeInstance(intendedType)) && TypeUtils.getUpcastPath(actualType, intendedType).isEmpty()) {
-					if (!allowSuperTypes || (!TypeUtils.isSubset(new BaseTypeInstance(intendedType), new BaseTypeInstance(actualType)) && TypeUtils.getUpcastPath(intendedType, actualType).isEmpty())) {
+					// in java we have "multiple" inheritance of sorts through interfaces
+					// with complex enough structures, they are not picked up with simple upcast paths
+					if (intendedType instanceof BeanType && actualType instanceof BeanType && ((BeanType) intendedType).getBeanClass().isAssignableFrom(((BeanType) actualType).getBeanClass())) {
+						intendedType = actualType;
+					}
+					else if (!allowSuperTypes || (!TypeUtils.isSubset(new BaseTypeInstance(intendedType), new BaseTypeInstance(actualType)) && TypeUtils.getUpcastPath(intendedType, actualType).isEmpty())) {
 						throw new SAXException("The xsi type " + actualType + " is not compatible with the defined type " + intendedType);
 					}
 					else {
