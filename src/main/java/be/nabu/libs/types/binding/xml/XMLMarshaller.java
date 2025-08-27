@@ -558,7 +558,12 @@ public class XMLMarshaller {
 						}
 					}
 					else {
-						marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
+						try {
+							marshalledValue = ((Marshallable) simpleType).marshal(content, typeInstance.getProperties());
+						}
+						catch (RuntimeException e) {
+							throw new RuntimeException("Can not marshal " + elementName, e);
+						}
 					}
 					writer.append(encode(marshalledValue));
 					writer.append("</");
