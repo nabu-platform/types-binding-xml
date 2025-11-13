@@ -22,6 +22,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -71,6 +75,10 @@ public class XMLBinding extends BaseTypeBinding {
 	private Charset charset;
 	private ComplexType type;
 	private boolean trimContent = false, camelCaseDashes, camelCaseUnderscores, ignoreUndefined, allowSuperTypes, forceRootTypeMatch, prettyPrint = true, unwrapBeans, multilineAttributes, multilineInAttributes, allowXSI = true, allowRootNull = true;
+	private Map<String, String> customTagMapping = new HashMap<>();
+	private AttributeFilter attributeFilter;
+	private List<String> sameLineAttributes = new ArrayList<>();
+	private Map<String, String> renameTag;
 	
 	public XMLBinding(ComplexType type, Charset charset) {
 		this.charset = charset;
@@ -91,6 +99,8 @@ public class XMLBinding extends BaseTypeBinding {
 		saxHandler.setForceRootTypeMatch(forceRootTypeMatch);
 		saxHandler.setUnwrapBeans(unwrapBeans);
 		saxHandler.setAllowRootNull(allowRootNull);
+		saxHandler.setCustomTagMapping(customTagMapping);
+		saxHandler.setRenameTag(renameTag);
 		return unmarshal(saxHandler, resource, windows, values);
 	}
 
@@ -172,10 +182,13 @@ public class XMLBinding extends BaseTypeBinding {
 	@Override
 	public void marshal(OutputStream output, ComplexContent content, Value<?>... values) throws IOException {
 		XMLMarshaller xmlMarshaller = new XMLMarshaller(new BaseTypeInstance(type, values));
+		xmlMarshaller.setCustomTagMapping(customTagMapping);
+		xmlMarshaller.setAttributeFilter(attributeFilter);
 		xmlMarshaller.setPrettyPrint(prettyPrint);
 		xmlMarshaller.setMultilineAttributes(multilineAttributes);
 		xmlMarshaller.setMultilineInAttributes(multilineInAttributes);
 		xmlMarshaller.setAllowXSI(allowXSI);
+		xmlMarshaller.setSameLineAttributes(sameLineAttributes);
 		xmlMarshaller.marshal(output, charset, content);
 	}
 
@@ -283,4 +296,35 @@ public class XMLBinding extends BaseTypeBinding {
 		return type;
 	}
 
+	public Map<String, String> getCustomTagMapping() {
+		return customTagMapping;
+	}
+
+	public void setCustomTagMapping(Map<String, String> customTagMapping) {
+		this.customTagMapping = customTagMapping;
+	}
+
+	public AttributeFilter getAttributeFilter() {
+		return attributeFilter;
+	}
+
+	public void setAttributeFilter(AttributeFilter attributeFilter) {
+		this.attributeFilter = attributeFilter;
+	}
+
+	public List<String> getSameLineAttributes() {
+		return sameLineAttributes;
+	}
+
+	public void setSameLineAttributes(List<String> sameLineAttributes) {
+		this.sameLineAttributes = sameLineAttributes;
+	}
+
+	public Map<String, String> getRenameTag() {
+		return renameTag;
+	}
+
+	public void setRenameTag(Map<String, String> renameTag) {
+		this.renameTag = renameTag;
+	}
 }

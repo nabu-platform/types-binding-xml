@@ -255,6 +255,13 @@ public class XMLParserSAX extends DefaultHandler {
 		return name;
 	}
 	
+	// map the custom tag to a specific class
+	private Map<String, String> customTagMapping = new HashMap<>();
+	// this means you probably also need to normalize the tag
+	// for example we say "map" becomes a specific actual type MapImpl instead of our more generic StepImpl
+	// but we do need to refactor the "map" tag then to a "step" tag
+	private Map<String, String> renameTag = new HashMap<>();
+	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
@@ -276,6 +283,28 @@ public class XMLParserSAX extends DefaultHandler {
 		Map<String, String> elementAttributes = new HashMap<String, String>();
 
 		Type actualType = null;
+		
+		// if we have a mapping for it, find it
+		if (customTagMapping != null && customTagMapping.containsValue(localName)) {
+			for (Map.Entry<String, String> entry : customTagMapping.entrySet()) {
+				if (entry.getValue().equals(localName)) {
+					if (registry != null) {
+						String typeNamespace = namespaces.get(null);
+						actualType = registry.getComplexType(typeNamespace, entry.getKey());
+					}
+					// if all else fails: resolve it against the the defined type factory
+					if (actualType == null) {
+						actualType = DefinedTypeResolverFactory.getInstance().getResolver().resolve(entry.getKey());
+					}
+					if (actualType == null) {
+						throw new SAXException("Could not resolve actual xsi type: " + entry.getKey());
+					}
+				}
+			}
+		}
+		if (renameTag != null && renameTag.containsKey(localName)) {
+			localName = renameTag.get(localName);
+		}
 		
 		boolean foundCollection = false;
 		// we need to go through the attributes first because it might contain things like xsi:type to indicate another type
@@ -513,6 +542,10 @@ public class XMLParserSAX extends DefaultHandler {
 				isAny = true;
 				anyStack.pop();
 			}
+		}
+		
+		if (renameTag != null && renameTag.containsKey(localName)) {
+			localName = renameTag.get(localName);
 		}
 		
 		// always pop because you always push
@@ -811,5 +844,21 @@ public class XMLParserSAX extends DefaultHandler {
 	public void setAllowRootNull(boolean allowRootNull) {
 		this.allowRootNull = allowRootNull;
 	}
-	
+
+	public Map<String, String> getCustomTagMapping() {
+		return customTagMapping;
+	}
+
+	public void setCustomTagMapping(Map<String, String> customTagMapping) {
+		this.customTagMapping = customTagMapping;
+	}
+
+	public Map<String, String> getRenameTag() {
+		return renameTag;
+	}
+
+	public void setRenameTag(Map<String, String> renameTag) {
+		this.renameTag = renameTag;
+	}
+
 }

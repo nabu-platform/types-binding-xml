@@ -27,6 +27,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -213,6 +214,13 @@ public class XMLMarshaller {
 	}
 	
 	/**
+	 * When we would normally use xsi:type to clarify that an extension is being used
+	 * We can also generate custom tags 
+	 */
+	private Map<String, String> customTagMapping = new HashMap<>();
+	private AttributeFilter attributeFilter;
+	private List<String> sameLineAttributes = new ArrayList<>();
+	/**
 	 * 
 	 * @param writer
 	 * @param content
@@ -329,6 +337,17 @@ public class XMLMarshaller {
 				if (namespaces.get(elementNamespace) != null)
 					writer.append(namespaces.get(elementNamespace)).append(":");
 			}
+			boolean customTagged = false;
+			if (typeInstance.getType() instanceof ComplexType) {
+				ComplexContent complexContent = content == null || content instanceof ComplexContent ? (ComplexContent) content : ComplexContentWrapperFactory.getInstance().getWrapper().wrap(content);
+				if ((!complexContent.getType().equals(typeInstance.getType()) || isAny) && complexContent.getType() instanceof DefinedType) {
+					String id = ((DefinedType) complexContent.getType()).getId();
+					if (customTagMapping.containsKey(id)) {
+						elementName = customTagMapping.get(id);
+						customTagged = true;
+					}
+				}
+			}
 			writer.append(elementName);
 			
 			// if the namespace was not already defined, define it, ignore ##default namespace
@@ -366,6 +385,9 @@ public class XMLMarshaller {
 			
 			if (additionalAttributes != null) {
 				for (String key : additionalAttributes.keySet()) {
+					if (attributeFilter != null && !attributeFilter.accept(content, key, additionalAttributes.get(key))) {
+						continue;
+					}
 					if (prettyPrint && multilineAttributes) {
 						writer.append("\n");
 						for (int i = 0; i < depth + 2; i++) {
@@ -404,14 +426,40 @@ public class XMLMarshaller {
 					// it doesn't specifically check for extension because this should be enforced by the types, not the marshaller
 					// for any, also put the xsi:type, otherwise the other end doesn't know which type you mean
 					if (allowXSI && (!complexContent.getType().equals(complexType) || isAny) && complexContent.getType() instanceof DefinedType) {
-						// TODO: should use namespace prefix to allow other tools to also unmarshal it
-						writer.append(" xsi:type=\"" + ((DefinedType) complexContent.getType()).getId() + "\"");
+						if (!customTagged) {
+							// TODO: should use namespace prefix to allow other tools to also unmarshal it
+							writer.append(" xsi:type=\"" + ((DefinedType) complexContent.getType()).getId() + "\"");
+						}
+						complexType = complexContent.getType();
+					}
+					// we have a custom extension
+					else if (customTagged) {
 						complexType = complexContent.getType();
 					}
 					else if (allowXSI && isRoot && xsiType != null) {
 						writer.append(" xsi:type=\"" + xsiType + "\"");
 					}
+					List<String> attributeOrder = new ArrayList<>();
 					for (Element<?> child : TypeUtils.getAllChildren(complexType)) {
+						if (child instanceof Attribute || child.getName().startsWith("@")) {
+							if (!sameLineAttributes.contains(child.getName())) {
+								attributeOrder.add(child.getName());
+							}
+						}
+						else {
+							if (!hasContent)
+								hasContent = complexContent.get(child.getName()) != null;
+						}
+					}
+					// alphabetical by default
+					Collections.sort(attributeOrder);
+					// give presedence to same line attributes, they retain the order you give them
+					if (!sameLineAttributes.isEmpty()) {
+						attributeOrder.addAll(0, sameLineAttributes);
+					}
+					
+					for (String attribute : attributeOrder) {
+						Element<?> child = complexType.get(attribute);
 						if (child instanceof Attribute || child.getName().startsWith("@")) {
 							Object value = complexContent.get(child.getName());
 							// depending on the complex content used, attributes may reside in the @ annotated field
@@ -425,9 +473,12 @@ public class XMLMarshaller {
 									throw new MarshalException("The attribute " + type.getName() + " can not be marshalled");
 								}
 								String marshalledValue = ((Marshallable) type).marshal(value, child.getProperties());
-								if (prettyPrint && multilineAttributes) {
+								if (attributeFilter != null && !attributeFilter.accept(content, child.getName(), marshalledValue)) {
+									continue;
+								}
+								if (prettyPrint && multilineAttributes && !sameLineAttributes.contains(child.getName())) {
 									writer.append("\n");
-									for (int i = 0; i < depth + 2; i++) {
+									for (int i = 0; i < depth + 1; i++) { // in the past this was +2 so it would be one tab _beyond_ the child elements
 										writer.append("\t");
 									}
 								}
@@ -448,10 +499,6 @@ public class XMLMarshaller {
 								}
 								writer.append(name).append("=\"").append(encodeAttribute(marshalledValue)).append("\"");
 							}
-						}
-						else {
-							if (!hasContent)
-								hasContent = complexContent.get(child.getName()) != null;
 						}
 					}
 				}
@@ -739,6 +786,30 @@ public class XMLMarshaller {
 
 	public void setMultilineInAttributes(boolean multilineInAttributes) {
 		this.multilineInAttributes = multilineInAttributes;
+	}
+
+	public Map<String, String> getCustomTagMapping() {
+		return customTagMapping;
+	}
+
+	public void setCustomTagMapping(Map<String, String> customTagMapping) {
+		this.customTagMapping = customTagMapping;
+	}
+
+	public AttributeFilter getAttributeFilter() {
+		return attributeFilter;
+	}
+
+	public void setAttributeFilter(AttributeFilter attributeFilter) {
+		this.attributeFilter = attributeFilter;
+	}
+
+	public List<String> getSameLineAttributes() {
+		return sameLineAttributes;
+	}
+
+	public void setSameLineAttributes(List<String> sameLineAttributes) {
+		this.sameLineAttributes = sameLineAttributes;
 	}
 
 }
